@@ -1,0 +1,244 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Sensoren kiezen",
+        "description": "Graaddagen worden berekend uit de langetermijnstatistieken van een buitentemperatuursensor. Kies optioneel een gas- of energiemeter om het verbruik aan graaddagen te koppelen.",
+        "data": {
+          "name": "Naam",
+          "temperature_sensor": "Buitentemperatuursensor",
+          "consumption_sensor": "Verbruiksmeter"
+        },
+        "data_description": {
+          "temperature_sensor": "Sensor die de buitentemperatuur meet. Er zijn langetermijnstatistieken nodig (state class measurement).",
+          "consumption_sensor": "Optionele gas- of energiemeter (state class total of total_increasing), bijvoorbeeld de gasmeter van een P1/DSMR-lezer of de energiesensor van een warmtepomp."
+        }
+      },
+      "settings": {
+        "title": "Rekeninstellingen",
+        "data": {
+          "base_temperature": "Basistemperatuur",
+          "heating_limit": "Stookgrens",
+          "weighting": "Weging",
+          "baseline_usage": "Verbruik zonder verwarming per dag",
+          "year_start_month": "Eerste maand van het jaar",
+          "history_start": "Historie lezen vanaf",
+          "import_statistics": "Graaddagstatistieken opslaan"
+        },
+        "data_description": {
+          "base_temperature": "Referentie-binnentemperatuur. Graaddagen per dag = basistemperatuur min de gemiddelde buitentemperatuur (18 °C in Nederland).",
+          "heating_limit": "Een dag telt alleen mee als de gemiddelde buitentemperatuur onder deze grens ligt. Meestal gelijk aan de basistemperatuur.",
+          "weighting": "Nederlandse weging vermenigvuldigt graaddagen met 1,1 (nov-feb), 1,0 (mrt, okt) en 0,8 (apr-sep) als correctie voor zoninstraling, zoals Mindergas en energieleveranciers doen.",
+          "baseline_usage": "Dagelijks verbruik dat niet met verwarmen te maken heeft (warm water, koken), in de eenheid van de meter. Dit wordt afgetrokken voordat het verbruik per graaddag wordt berekend.",
+          "year_start_month": "Maand waarin de jaartotalen beginnen, bijv. januari voor kalenderjaren of juli/augustus voor stookseizoenen.",
+          "history_start": "Oudste datum die uit de recorderstatistieken wordt gelezen. Leeg laten voor de laatste 10 jaar.",
+          "import_statistics": "Sla (gewogen) graaddagen op als langetermijnstatistieken zodat ze per dag/week/maand/jaar te tonen en te vergelijken zijn in de statistiekgrafiekkaart."
+        }
+      }
+    },
+    "error": {
+      "heating_limit_above_base": "De stookgrens kan niet hoger zijn dan de basistemperatuur."
+    },
+    "abort": {
+      "already_configured": "Deze sensoren zijn al ingesteld."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Rekeninstellingen",
+        "data": {
+          "base_temperature": "Basistemperatuur",
+          "heating_limit": "Stookgrens",
+          "weighting": "Weging",
+          "baseline_usage": "Verbruik zonder verwarming per dag",
+          "year_start_month": "Eerste maand van het jaar",
+          "history_start": "Historie lezen vanaf",
+          "import_statistics": "Graaddagstatistieken opslaan"
+        },
+        "data_description": {
+          "base_temperature": "Referentie-binnentemperatuur. Graaddagen per dag = basistemperatuur min de gemiddelde buitentemperatuur (18 °C in Nederland).",
+          "heating_limit": "Een dag telt alleen mee als de gemiddelde buitentemperatuur onder deze grens ligt. Meestal gelijk aan de basistemperatuur.",
+          "weighting": "Nederlandse weging vermenigvuldigt graaddagen met 1,1 (nov-feb), 1,0 (mrt, okt) en 0,8 (apr-sep) als correctie voor zoninstraling, zoals Mindergas en energieleveranciers doen.",
+          "baseline_usage": "Dagelijks verbruik dat niet met verwarmen te maken heeft (warm water, koken), in de eenheid van de meter. Dit wordt afgetrokken voordat het verbruik per graaddag wordt berekend.",
+          "year_start_month": "Maand waarin de jaartotalen beginnen, bijv. januari voor kalenderjaren of juli/augustus voor stookseizoenen.",
+          "history_start": "Oudste datum die uit de recorderstatistieken wordt gelezen. Leeg laten voor de laatste 10 jaar.",
+          "import_statistics": "Sla (gewogen) graaddagen op als langetermijnstatistieken zodat ze per dag/week/maand/jaar te tonen en te vergelijken zijn in de statistiekgrafiekkaart."
+        }
+      }
+    },
+    "error": {
+      "heating_limit_above_base": "De stookgrens kan niet hoger zijn dan de basistemperatuur."
+    }
+  },
+  "selector": {
+    "weighting": {
+      "options": {
+        "nl": "Gewogen (Nederland / Mindergas)",
+        "none": "Ongewogen"
+      }
+    },
+    "year_start_month": {
+      "options": {
+        "1": "januari",
+        "2": "februari",
+        "3": "maart",
+        "4": "april",
+        "5": "mei",
+        "6": "juni",
+        "7": "juli",
+        "8": "augustus",
+        "9": "september",
+        "10": "oktober",
+        "11": "november",
+        "12": "december"
+      }
+    },
+    "group_by": {
+      "options": {
+        "day": "Dag",
+        "week": "Week",
+        "month": "Maand",
+        "year": "Jaar"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "mean_temperature_today": {
+        "name": "Gemiddelde buitentemperatuur vandaag"
+      },
+      "mean_temperature_yesterday": {
+        "name": "Gemiddelde buitentemperatuur gisteren"
+      },
+      "degree_days_today": {
+        "name": "Graaddagen vandaag"
+      },
+      "degree_days_yesterday": {
+        "name": "Graaddagen gisteren"
+      },
+      "weighted_degree_days_today": {
+        "name": "Gewogen graaddagen vandaag"
+      },
+      "weighted_degree_days_yesterday": {
+        "name": "Gewogen graaddagen gisteren"
+      },
+      "weighted_degree_days_month": {
+        "name": "Gewogen graaddagen deze maand"
+      },
+      "weighted_degree_days_year": {
+        "name": "Gewogen graaddagen dit jaar"
+      },
+      "weighted_degree_days_last_year_to_date": {
+        "name": "Gewogen graaddagen vorig jaar tot vandaag"
+      },
+      "weighted_degree_days_previous_year": {
+        "name": "Gewogen graaddagen vorig jaar"
+      },
+      "usage_today": {
+        "name": "Verbruik vandaag"
+      },
+      "usage_yesterday": {
+        "name": "Verbruik gisteren"
+      },
+      "usage_month": {
+        "name": "Verbruik deze maand"
+      },
+      "usage_year": {
+        "name": "Verbruik dit jaar"
+      },
+      "usage_last_year_to_date": {
+        "name": "Verbruik vorig jaar tot vandaag"
+      },
+      "usage_per_weighted_degree_day_yesterday": {
+        "name": "Verbruik per gewogen graaddag gisteren"
+      },
+      "usage_per_weighted_degree_day_30d": {
+        "name": "Verbruik per gewogen graaddag laatste 30 dagen"
+      },
+      "usage_per_weighted_degree_day_year": {
+        "name": "Verbruik per gewogen graaddag dit jaar"
+      },
+      "usage_per_weighted_degree_day_previous_year": {
+        "name": "Verbruik per gewogen graaddag vorig jaar"
+      },
+      "weather_corrected_usage_year": {
+        "name": "Weergecorrigeerd verbruik dit jaar"
+      },
+      "weather_corrected_difference_year": {
+        "name": "Weergecorrigeerd verschil met vorig jaar"
+      }
+    }
+  },
+  "exceptions": {
+    "entry_not_found": {
+      "message": "Geen Degree Days-configuratie met id {entry_id} gevonden."
+    },
+    "entry_not_loaded": {
+      "message": "Degree Days-configuratie {entry_id} is niet geladen."
+    },
+    "invalid_range": {
+      "message": "De einddatum {end} ligt voor de begindatum {start}."
+    }
+  },
+  "services": {
+    "compare_periods": {
+      "name": "Periodes vergelijken",
+      "description": "Vergelijkt verbruik en (gewogen) graaddagen van twee periodes en corrigeert periode B voor het weer van periode A.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Configuratie",
+          "description": "De Degree Days-configuratie."
+        },
+        "period_a_start": {
+          "name": "Begin periode A",
+          "description": "Eerste dag van de referentieperiode."
+        },
+        "period_a_end": {
+          "name": "Einde periode A",
+          "description": "Laatste dag van de referentieperiode."
+        },
+        "period_b_start": {
+          "name": "Begin periode B",
+          "description": "Eerste dag van de te vergelijken periode."
+        },
+        "period_b_end": {
+          "name": "Einde periode B",
+          "description": "Laatste dag van de te vergelijken periode."
+        }
+      }
+    },
+    "get_daily_data": {
+      "name": "Gegevens ophalen",
+      "description": "Geeft temperatuur, graaddagen en verbruik per dag, week, maand of jaar.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Configuratie",
+          "description": "De Degree Days-configuratie."
+        },
+        "start": {
+          "name": "Begin",
+          "description": "Eerste dag."
+        },
+        "end": {
+          "name": "Einde",
+          "description": "Laatste dag."
+        },
+        "group_by": {
+          "name": "Groeperen per",
+          "description": "Gegevens per dag, week, maand of jaar samenvoegen."
+        }
+      }
+    },
+    "rebuild_history": {
+      "name": "Historie opnieuw opbouwen",
+      "description": "Leest de volledige historie opnieuw uit de recorder en herschrijft de graaddagstatistieken.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Configuratie",
+          "description": "De Degree Days-configuratie."
+        }
+      }
+    }
+  }
+}

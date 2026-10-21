@@ -1,0 +1,30 @@
+{
+  "entity": {
+    "sensor": {
+      "degree_days_today": { "default": "mdi:thermometer-chevron-down" },
+      "degree_days_yesterday": { "default": "mdi:thermometer-chevron-down" },
+      "weighted_degree_days_today": { "default": "mdi:thermometer-chevron-down" },
+      "weighted_degree_days_yesterday": { "default": "mdi:thermometer-chevron-down" },
+      "weighted_degree_days_month": { "default": "mdi:calendar-month" },
+      "weighted_degree_days_year": { "default": "mdi:calendar" },
+      "weighted_degree_days_last_year_to_date": { "default": "mdi:calendar-arrow-left" },
+      "weighted_degree_days_previous_year": { "default": "mdi:calendar-arrow-left" },
+      "usage_today": { "default": "mdi:fire" },
+      "usage_yesterday": { "default": "mdi:fire" },
+      "usage_month": { "default": "mdi:fire" },
+      "usage_year": { "default": "mdi:fire" },
+      "usage_last_year_to_date": { "default": "mdi:fire" },
+      "usage_per_weighted_degree_day_yesterday": { "default": "mdi:scale-balance" },
+      "usage_per_weighted_degree_day_30d": { "default": "mdi:scale-balance" },
+      "usage_per_weighted_degree_day_year": { "default": "mdi:scale-balance" },
+      "usage_per_weighted_degree_day_previous_year": { "default": "mdi:scale-balance" },
+      "weather_corrected_usage_year": { "default": "mdi:weather-partly-snowy" },
+      "weather_corrected_difference_year": { "default": "mdi:compare-horizontal" }
+    }
+  },
+  "services": {
+    "compare_periods": { "service": "mdi:compare-horizontal" },
+    "get_daily_data": { "service": "mdi:table" },
+    "rebuild_history": { "service": "mdi:database-refresh" }
+  }
+}

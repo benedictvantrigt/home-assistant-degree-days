@@ -1,0 +1,244 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Select sensors",
+        "description": "Degree days are calculated from the long-term statistics of an outdoor temperature sensor. Optionally select a gas or energy meter to relate consumption to degree days.",
+        "data": {
+          "name": "Name",
+          "temperature_sensor": "Outdoor temperature sensor",
+          "consumption_sensor": "Consumption meter"
+        },
+        "data_description": {
+          "temperature_sensor": "Sensor measuring the outdoor temperature. It needs long-term statistics (state class measurement).",
+          "consumption_sensor": "Optional gas or energy meter (state class total or total_increasing), e.g. the gas meter of a P1/DSMR reader or a heat pump energy sensor."
+        }
+      },
+      "settings": {
+        "title": "Calculation settings",
+        "data": {
+          "base_temperature": "Base temperature",
+          "heating_limit": "Heating limit",
+          "weighting": "Weighting",
+          "baseline_usage": "Non-heating usage per day",
+          "year_start_month": "First month of the year",
+          "history_start": "Read history from",
+          "import_statistics": "Write degree day statistics"
+        },
+        "data_description": {
+          "base_temperature": "Reference indoor temperature. Degree days for a day = base temperature minus the mean outdoor temperature (18 °C in the Netherlands).",
+          "heating_limit": "A day only counts when its mean outdoor temperature is below this limit (stookgrens). Usually equal to the base temperature.",
+          "weighting": "Dutch weighting multiplies degree days by 1.1 (Nov-Feb), 1.0 (Mar, Oct) and 0.8 (Apr-Sep) to correct for solar gain, as used by Mindergas and Dutch energy suppliers.",
+          "baseline_usage": "Consumption per day not related to heating (hot water, cooking), in the meter's unit. It is subtracted before calculating usage per degree day.",
+          "year_start_month": "Month in which the yearly totals start, e.g. January for calendar years or July/August for heating seasons.",
+          "history_start": "Oldest date read from the recorder statistics. Leave empty to read the last 10 years.",
+          "import_statistics": "Store (weighted) degree days as long-term statistics so they can be shown and compared per day/week/month/year in the statistics graph card."
+        }
+      }
+    },
+    "error": {
+      "heating_limit_above_base": "The heating limit cannot be higher than the base temperature."
+    },
+    "abort": {
+      "already_configured": "These sensors are already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Calculation settings",
+        "data": {
+          "base_temperature": "Base temperature",
+          "heating_limit": "Heating limit",
+          "weighting": "Weighting",
+          "baseline_usage": "Non-heating usage per day",
+          "year_start_month": "First month of the year",
+          "history_start": "Read history from",
+          "import_statistics": "Write degree day statistics"
+        },
+        "data_description": {
+          "base_temperature": "Reference indoor temperature. Degree days for a day = base temperature minus the mean outdoor temperature (18 °C in the Netherlands).",
+          "heating_limit": "A day only counts when its mean outdoor temperature is below this limit (stookgrens). Usually equal to the base temperature.",
+          "weighting": "Dutch weighting multiplies degree days by 1.1 (Nov-Feb), 1.0 (Mar, Oct) and 0.8 (Apr-Sep) to correct for solar gain, as used by Mindergas and Dutch energy suppliers.",
+          "baseline_usage": "Consumption per day not related to heating (hot water, cooking), in the meter's unit. It is subtracted before calculating usage per degree day.",
+          "year_start_month": "Month in which the yearly totals start, e.g. January for calendar years or July/August for heating seasons.",
+          "history_start": "Oldest date read from the recorder statistics. Leave empty to read the last 10 years.",
+          "import_statistics": "Store (weighted) degree days as long-term statistics so they can be shown and compared per day/week/month/year in the statistics graph card."
+        }
+      }
+    },
+    "error": {
+      "heating_limit_above_base": "The heating limit cannot be higher than the base temperature."
+    }
+  },
+  "selector": {
+    "weighting": {
+      "options": {
+        "nl": "Weighted (Netherlands / Mindergas)",
+        "none": "Unweighted"
+      }
+    },
+    "year_start_month": {
+      "options": {
+        "1": "January",
+        "2": "February",
+        "3": "March",
+        "4": "April",
+        "5": "May",
+        "6": "June",
+        "7": "July",
+        "8": "August",
+        "9": "September",
+        "10": "October",
+        "11": "November",
+        "12": "December"
+      }
+    },
+    "group_by": {
+      "options": {
+        "day": "Day",
+        "week": "Week",
+        "month": "Month",
+        "year": "Year"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "mean_temperature_today": {
+        "name": "Mean outdoor temperature today"
+      },
+      "mean_temperature_yesterday": {
+        "name": "Mean outdoor temperature yesterday"
+      },
+      "degree_days_today": {
+        "name": "Degree days today"
+      },
+      "degree_days_yesterday": {
+        "name": "Degree days yesterday"
+      },
+      "weighted_degree_days_today": {
+        "name": "Weighted degree days today"
+      },
+      "weighted_degree_days_yesterday": {
+        "name": "Weighted degree days yesterday"
+      },
+      "weighted_degree_days_month": {
+        "name": "Weighted degree days this month"
+      },
+      "weighted_degree_days_year": {
+        "name": "Weighted degree days this year"
+      },
+      "weighted_degree_days_last_year_to_date": {
+        "name": "Weighted degree days last year to date"
+      },
+      "weighted_degree_days_previous_year": {
+        "name": "Weighted degree days previous year"
+      },
+      "usage_today": {
+        "name": "Usage today"
+      },
+      "usage_yesterday": {
+        "name": "Usage yesterday"
+      },
+      "usage_month": {
+        "name": "Usage this month"
+      },
+      "usage_year": {
+        "name": "Usage this year"
+      },
+      "usage_last_year_to_date": {
+        "name": "Usage last year to date"
+      },
+      "usage_per_weighted_degree_day_yesterday": {
+        "name": "Usage per weighted degree day yesterday"
+      },
+      "usage_per_weighted_degree_day_30d": {
+        "name": "Usage per weighted degree day last 30 days"
+      },
+      "usage_per_weighted_degree_day_year": {
+        "name": "Usage per weighted degree day this year"
+      },
+      "usage_per_weighted_degree_day_previous_year": {
+        "name": "Usage per weighted degree day previous year"
+      },
+      "weather_corrected_usage_year": {
+        "name": "Weather corrected usage this year"
+      },
+      "weather_corrected_difference_year": {
+        "name": "Weather corrected difference with last year"
+      }
+    }
+  },
+  "exceptions": {
+    "entry_not_found": {
+      "message": "No Degree Days entry with id {entry_id} was found."
+    },
+    "entry_not_loaded": {
+      "message": "Degree Days entry {entry_id} is not loaded."
+    },
+    "invalid_range": {
+      "message": "The end date {end} is before the start date {start}."
+    }
+  },
+  "services": {
+    "compare_periods": {
+      "name": "Compare periods",
+      "description": "Compares consumption and (weighted) degree days of two periods and corrects period B for the weather of period A.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Entry",
+          "description": "The Degree Days entry to use."
+        },
+        "period_a_start": {
+          "name": "Period A start",
+          "description": "First day of the reference period."
+        },
+        "period_a_end": {
+          "name": "Period A end",
+          "description": "Last day of the reference period."
+        },
+        "period_b_start": {
+          "name": "Period B start",
+          "description": "First day of the period to compare."
+        },
+        "period_b_end": {
+          "name": "Period B end",
+          "description": "Last day of the period to compare."
+        }
+      }
+    },
+    "get_daily_data": {
+      "name": "Get data",
+      "description": "Returns temperature, degree days and consumption per day, week, month or year.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Entry",
+          "description": "The Degree Days entry to use."
+        },
+        "start": {
+          "name": "Start",
+          "description": "First day."
+        },
+        "end": {
+          "name": "End",
+          "description": "Last day."
+        },
+        "group_by": {
+          "name": "Group by",
+          "description": "Aggregate the data per day, week, month or year."
+        }
+      }
+    },
+    "rebuild_history": {
+      "name": "Rebuild history",
+      "description": "Reads the complete history from the recorder again and rewrites the degree day statistics.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Entry",
+          "description": "The Degree Days entry to use."
+        }
+      }
+    }
+  }
+}
