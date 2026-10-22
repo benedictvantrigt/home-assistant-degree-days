@@ -68,3 +68,32 @@ async def test_user_flow(hass: HomeAssistant) -> None:
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert entry.options[CONF_HEATING_LIMIT] == 15.5
+
+
+@pytest.mark.usefixtures("setup_integration_env")
+async def test_duplicate_aborts(hass: HomeAssistant) -> None:
+    """The same sensors cannot be added twice; other combinations can."""
+
+    async def add(temperature: str, consumption: str | None) -> dict:
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_USER}
+        )
+        user_input = {"name": "House", CONF_TEMPERATURE_SENSOR: temperature}
+        if consumption:
+            user_input[CONF_CONSUMPTION_SENSOR] = consumption
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input
+        )
+        if result["type"] is FlowResultType.FORM:
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"], SETTINGS
+            )
+        await hass.async_block_till_done()
+        return result
+
+    assert (await add("sensor.outdoor", None))["type"] is FlowResultType.CREATE_ENTRY
+    assert (await add("sensor.outdoor", None))["reason"] == "already_configured"
+    assert (await add("sensor.outdoor", "sensor.gas"))[
+        "type"
+    ] is FlowResultType.CREATE_ENTRY
+    assert (await add("sensor.outdoor", "sensor.gas"))["reason"] == "already_configured"

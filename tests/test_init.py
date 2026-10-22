@@ -1,6 +1,7 @@
 """Integration tests using a real recorder with imported statistics."""
 
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 from freezegun.api import FrozenDateTimeFactory
 import pytest
@@ -31,6 +32,7 @@ from homeassistant.components.recorder.statistics import (
     statistics_during_period,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.util import dt as dt_util
 
 TEMP = "sensor.outdoor_temperature"
@@ -188,4 +190,71 @@ async def test_setup_and_services(
     )
     assert stats[stat_id][0]["change"] == pytest.approx(165.0)
 
-    assert await hass.config_entries.async_unload(entry.entry_id)
+    # Unchanged days are not written again on the next update.
+    with patch(
+        "custom_components.degree_days.coordinator.async_add_external_statistics"
+    ) as add_statistics:
+        await entry.runtime_data.async_refresh()
+    add_statistics.assert_not_called()
+
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN,
+            "get_daily_data",
+            {
+                "config_entry_id": entry.entry_id,
+                "start": "1990-01-01",
+                "end": "2025-01-20",
+            },
+            blocking=True,
+            return_response=True,
+        )
+
+    # Removing the entry removes its statistics.
+    assert await hass.config_entries.async_remove(entry.entry_id)
+    await async_wait_recording_done(hass)
+    stats = await get_instance(hass).async_add_executor_job(
+        statistics_during_period,
+        hass,
+        start,
+        None,
+        {stat_id},
+        "month",
+        None,
+        {"change"},
+    )
+    assert stat_id not in stats
+
+
+@pytest.mark.usefixtures("setup_integration_env")
+async def test_first_day_of_year(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """On 1 January the year-on-year comparison is empty, not reversed."""
+    await hass.config.async_set_time_zone("Europe/Amsterdam")
+    tz = dt_util.get_default_time_zone()
+    freezer.move_to(dt_util.as_utc(datetime(2025, 1, 1, 12, 0, tzinfo=tz)))
+    hass.states.async_set(TEMP, "8.0", {"unit_of_measurement": "°C"})
+    hass.states.async_set(GAS, "100", {"unit_of_measurement": "m³"})
+    _import_history(hass, dt_util.as_utc(datetime(2024, 12, 1, tzinfo=tz)), 31)
+    await async_wait_recording_done(hass)
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Home",
+        data={CONF_TEMPERATURE_SENSOR: TEMP, CONF_CONSUMPTION_SENSOR: GAS},
+        options={CONF_YEAR_START_MONTH: 1, CONF_IMPORT_STATISTICS: True},
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    data = entry.runtime_data.data
+    assert data.year_to_yesterday.days == 0
+    assert data.year.days == 1
+    assert data.previous_year.days == 366
+    assert data.previous_year.days_with_usage == 31
+    assert (
+        hass.states.get("sensor.home_weather_corrected_difference_with_last_year").state
+        == "unknown"
+    )

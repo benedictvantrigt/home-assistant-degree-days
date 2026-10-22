@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from homeassistant.components.recorder import get_instance
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
@@ -43,3 +44,13 @@ async def _async_update_listener(
 async def async_unload_entry(hass: HomeAssistant, entry: DegreeDaysConfigEntry) -> bool:
     """Unload a config entry."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: DegreeDaysConfigEntry) -> None:
+    """Remove the degree day statistics written for a deleted entry."""
+    get_instance(hass).async_clear_statistics(
+        [
+            f"{DOMAIN}:{entry.entry_id.lower()}_degree_days",
+            f"{DOMAIN}:{entry.entry_id.lower()}_weighted_degree_days",
+        ]
+    )

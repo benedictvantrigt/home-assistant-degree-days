@@ -30,6 +30,7 @@ from .const import (
     ATTR_START,
     DOMAIN,
     GROUP_BY_OPTIONS,
+    MAX_RANGE_DAYS,
     SERVICE_COMPARE_PERIODS,
     SERVICE_GET_DAILY_DATA,
     SERVICE_REBUILD_HISTORY,
@@ -81,6 +82,12 @@ def _check_range(start: date, end: date) -> None:
             translation_domain=DOMAIN,
             translation_key="invalid_range",
             translation_placeholders={"start": str(start), "end": str(end)},
+        )
+    if (end - start).days >= MAX_RANGE_DAYS:
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="range_too_long",
+            translation_placeholders={"days": str(MAX_RANGE_DAYS)},
         )
 
 

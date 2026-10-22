@@ -68,3 +68,6 @@ ATTR_END: Final = "end"
 ATTR_GROUP_BY: Final = "group_by"
 
 GROUP_BY_OPTIONS: Final = ["day", "week", "month", "year"]
+
+# Longest date range a service call may request (about 25 years).
+MAX_RANGE_DAYS: Final = 9132

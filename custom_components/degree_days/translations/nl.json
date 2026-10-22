@@ -179,6 +179,9 @@
     },
     "invalid_range": {
       "message": "De einddatum {end} ligt voor de begindatum {start}."
+    },
+    "range_too_long": {
+      "message": "De periode is te lang; het maximum is {days} dagen."
     }
   },
   "services": {

@@ -91,6 +91,11 @@ Add one entry per meter, e.g. one for gas and one for a heat pump.
 | Weather corrected usage this year | this year's usage at last year's weather (same period) |
 | Weather corrected difference with last year | %; negative = you used less than last year, independent of the weather |
 
+The year-on-year comparison (the *last year to date* and *weather corrected*
+sensors) uses completed days only: this year up to and including yesterday,
+against last year up to the same date. Today's partial day is left out so it
+is not compared with a full day.
+
 ## Actions
 
 ### `degree_days.compare_periods`
@@ -120,6 +125,8 @@ range, e.g. for use in templates or custom cards.
 Reads the full history again and rewrites the degree day statistics, e.g.
 after importing older meter data.
 
+The actions accept periods of up to about 25 years (9132 days).
+
 ## Comparing periods in a dashboard
 
 ```yaml
@@ -134,6 +141,10 @@ entities:
 ```
 
 ## Notes
+
+- The degree day statistics are rewritten from scratch each time Home
+  Assistant starts or the settings change, and removed when you delete the
+  integration entry or turn the option off.
 
 - Results are only as good as the temperature sensor: a sensor in direct sun
   or against a wall will read too high. A nearby official weather station is

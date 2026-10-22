@@ -148,12 +148,11 @@ class DegreeDaysConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Select the sensors."""
         if user_input is not None:
-            self._async_abort_entries_match(
-                {
-                    CONF_TEMPERATURE_SENSOR: user_input[CONF_TEMPERATURE_SENSOR],
-                    CONF_CONSUMPTION_SENSOR: user_input.get(CONF_CONSUMPTION_SENSOR),
-                }
+            await self.async_set_unique_id(
+                f"{user_input[CONF_TEMPERATURE_SENSOR]}"
+                f"_{user_input.get(CONF_CONSUMPTION_SENSOR, '')}"
             )
+            self._abort_if_unique_id_configured()
             self._data = user_input
             return await self.async_step_settings()
 

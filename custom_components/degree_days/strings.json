@@ -179,6 +179,9 @@
     },
     "invalid_range": {
       "message": "The end date {end} is before the start date {start}."
+    },
+    "range_too_long": {
+      "message": "The period is too long; the maximum is {days} days."
     }
   },
   "services": {

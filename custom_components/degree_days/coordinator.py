@@ -81,6 +81,7 @@ class DegreeDaysData:
     year: PeriodSummary
     last_30_days: PeriodSummary
     previous_year: PeriodSummary
+    year_to_yesterday: PeriodSummary
     year_last_year_to_date: PeriodSummary
     year_comparison: dict[str, Any]
 
@@ -128,6 +129,8 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
         )
         self.records: dict[date, DayRecord] = {}
         self._history_loaded = False
+        # Values last written per statistic and day, to skip unchanged writes.
+        self._written: dict[str, dict[date, tuple[float, float]]] = {}
         self._lock = asyncio.Lock()
 
     @property
@@ -158,12 +161,15 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
                 start = self._default_history_start(today)
             else:
                 start = today - timedelta(days=REFRESH_DAYS)
+            full_load = not self._history_loaded
             await self._async_load_days(start, today)
             await self._async_load_today(today)
-            imported_from = None if not self._history_loaded else start
             self._history_loaded = True
             if self.import_statistics:
-                self._import_statistics(imported_from, today)
+                self._import_statistics(today, full_load)
+            elif full_load:
+                # Remove statistics written while the option was enabled.
+                get_instance(self.hass).async_clear_statistics(self.statistic_ids)
             return self._build_data(today)
 
     async def _async_load_days(self, start: date, today: date) -> None:
@@ -281,10 +287,13 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
         ys = year_start(today, self.year_start_month)
         previous_ys = year_start(ys - timedelta(days=1), self.year_start_month)
         year = summarize(self.records, ys, today, self.config)
+        # The year-on-year comparison uses completed days only, so a partial
+        # today is not compared with a full day last year.
+        year_to_yesterday = summarize(self.records, ys, yesterday, self.config)
         last_year_to_date = summarize(
             self.records,
             previous_ys,
-            same_day_previous_year(today),
+            same_day_previous_year(yesterday),
             self.config,
         )
         return DegreeDaysData(
@@ -302,7 +311,8 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
                 self.records, previous_ys, ys - timedelta(days=1), self.config
             ),
             year_last_year_to_date=last_year_to_date,
-            year_comparison=compare(last_year_to_date, year),
+            year_to_yesterday=year_to_yesterday,
+            year_comparison=compare(last_year_to_date, year_to_yesterday),
         )
 
     def summarize(self, start: date, end: date) -> PeriodSummary:
@@ -315,44 +325,56 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
         """Return the external statistic id for a key."""
         return f"{DOMAIN}:{self.config_entry.entry_id.lower()}_{key}"
 
-    def _import_statistics(self, start: date | None, today: date) -> None:
+    def _import_statistics(self, today: date, full_load: bool) -> None:
         """Write completed days as external statistics.
 
         This makes (weighted) degree days available in the statistics graph
         card for the full history, at day/week/month/year resolution. The
-        cumulative sum is recalculated from the first known day each time,
-        so overwriting the most recent days keeps the series consistent.
+        cumulative sum is recalculated from the first known day each time.
+        On a full load the old series is cleared first, so a changed history
+        start or setting cannot leave an inconsistent sum behind. Afterwards
+        only days whose value changed are written.
         """
         completed = sorted(day for day in self.records if day < today)
+        if full_load:
+            self._written = {}
+            get_instance(self.hass).async_clear_statistics(self.statistic_ids)
         if not completed:
             return
 
-        for key, attribute, name in (
-            ("degree_days", "degree_days", "Degree days"),
-            ("weighted_degree_days", "weighted_degree_days", "Weighted degree days"),
+        for key, name in (
+            ("degree_days", "Degree days"),
+            ("weighted_degree_days", "Weighted degree days"),
         ):
+            statistic_id = self.statistic_id(key)
+            written = self._written.setdefault(statistic_id, {})
             metadata = StatisticMetaData(
                 mean_type=StatisticMeanType.NONE,
                 has_sum=True,
                 name=f"{self.config_entry.title} {name.lower()}",
                 source=DOMAIN,
-                statistic_id=self.statistic_id(key),
+                statistic_id=statistic_id,
                 unit_class=None,
                 unit_of_measurement=UNIT_DEGREE_DAYS,
             )
             statistics: list[StatisticData] = []
             total = 0.0
             for day in completed:
-                value = getattr(self.records[day], attribute) or 0.0
-                total += value
-                if start is not None and day < start:
+                value = round(getattr(self.records[day], key) or 0.0, 4)
+                total = round(total + value, 4)
+                if written.get(day) == (value, total):
                     continue
+                written[day] = (value, total)
                 statistics.append(
-                    StatisticData(
-                        start=_local_midnight(day),
-                        state=round(value, 4),
-                        sum=round(total, 4),
-                    )
+                    StatisticData(start=_local_midnight(day), state=value, sum=total)
                 )
             if statistics:
                 async_add_external_statistics(self.hass, metadata, statistics)
+
+    @property
+    def statistic_ids(self) -> list[str]:
+        """Return the ids of the external statistics of this entry."""
+        return [
+            self.statistic_id("degree_days"),
+            self.statistic_id("weighted_degree_days"),
+        ]

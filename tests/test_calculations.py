@@ -94,3 +94,18 @@ def test_group_periods() -> None:
     )
     assert [g.start for g in groups] == [date(2025, 1, 31), date(2025, 2, 1)]
     assert [g.usage for g in groups] == [1.0, 2.0]
+
+
+def test_empty_range() -> None:
+    """An end before the start is an empty period, not a reversed one.
+
+    On 1 January "this year up to yesterday" is such a range.
+    """
+    records = {
+        d: build_day_record(d, 5.0, 2.0, CONFIG)
+        for d in [date(2024, 12, 31), date(2025, 1, 1)]
+    }
+    summary = summarize(records, date(2025, 1, 1), date(2024, 12, 31), CONFIG)
+    assert summary.days == 0
+    assert summary.usage == 0.0
+    assert summary.usage_per_weighted_degree_day is None

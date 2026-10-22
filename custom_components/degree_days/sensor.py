@@ -198,7 +198,7 @@ CONSUMPTION_SENSORS: tuple[DegreeDaysSensorDescription, ...] = (
         usage_unit=True,
         value_fn=lambda d: d.year_comparison["weather_corrected_usage"],
         attributes_fn=lambda d: {
-            "this_year": d.year.as_dict(),
+            "this_year": d.year_to_yesterday.as_dict(),
             "last_year_to_date": d.year_last_year_to_date.as_dict(),
             **d.year_comparison,
         },

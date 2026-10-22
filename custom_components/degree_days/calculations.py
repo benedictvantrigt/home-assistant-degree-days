@@ -113,10 +113,10 @@ def summarize(
     end: date,
     config: DegreeDayConfig,
 ) -> PeriodSummary:
-    """Summarise the days from start to end (inclusive)."""
-    if end < start:
-        start, end = end, start
+    """Summarise the days from start to end (inclusive).
 
+    An empty range (end before start) gives a summary of zero days.
+    """
     days = 0
     temp_days = 0
     usage_days = 0
@@ -237,8 +237,6 @@ def group_periods(
     config: DegreeDayConfig,
 ) -> list[PeriodSummary]:
     """Summarise the range start..end per day, week, month or year."""
-    if end < start:
-        start, end = end, start
     groups: dict[date, list[date]] = {}
     for day in iter_days(start, end):
         groups.setdefault(period_key(day, group_by), []).append(day)
