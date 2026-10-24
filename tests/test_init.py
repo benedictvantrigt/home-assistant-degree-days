@@ -258,3 +258,31 @@ async def test_first_day_of_year(
         hass.states.get("sensor.home_weather_corrected_difference_with_last_year").state
         == "unknown"
     )
+
+
+@pytest.mark.usefixtures("setup_integration_env")
+async def test_unit_when_meter_not_available_yet(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """Usage sensors get the statistics unit when the meter has no state yet."""
+    await hass.config.async_set_time_zone("Europe/Amsterdam")
+    tz = dt_util.get_default_time_zone()
+    freezer.move_to(dt_util.as_utc(datetime(2025, 1, 21, 12, 0, tzinfo=tz)))
+    hass.states.async_set(TEMP, "8.0", {"unit_of_measurement": "°C"})
+    _import_history(hass, dt_util.as_utc(datetime(2025, 1, 1, tzinfo=tz)), 20)
+    await async_wait_recording_done(hass)
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Home",
+        data={CONF_TEMPERATURE_SENSOR: TEMP, CONF_CONSUMPTION_SENSOR: GAS},
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert hass.states.get(GAS) is None
+    state = hass.states.get("sensor.home_usage_this_year")
+    assert state.attributes["unit_of_measurement"] == "m³"
+    state = hass.states.get("sensor.home_usage_per_weighted_degree_day_last_30_days")
+    assert state.attributes["unit_of_measurement"] == "m³/°C·d"

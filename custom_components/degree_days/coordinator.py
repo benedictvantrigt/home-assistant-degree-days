@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
+from functools import partial
 import logging
 from typing import Any
 
@@ -21,6 +22,7 @@ from homeassistant.components.recorder.models import (
 )
 from homeassistant.components.recorder.statistics import (
     async_add_external_statistics,
+    get_metadata,
     statistic_during_period,
     statistics_during_period,
 )
@@ -154,6 +156,7 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
             date.fromisoformat(history_start) if history_start else None
         )
         self.records: dict[date, DayRecord] = {}
+        self._statistics_unit: str | None = None
         self._store = comparison_store(hass, entry.entry_id)
         self.preset: str = DEFAULT_PRESET
         self._custom_periods: Periods | None = None
@@ -167,9 +170,14 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
         """Return the unit of the consumption sensor."""
         if self.consumption_sensor is None:
             return None
-        if (state := self.hass.states.get(self.consumption_sensor)) is None:
-            return None
-        return state.attributes.get(ATTR_UNIT_OF_MEASUREMENT)
+        state = self.hass.states.get(self.consumption_sensor)
+        if state is not None and (
+            unit := state.attributes.get(ATTR_UNIT_OF_MEASUREMENT)
+        ):
+            return unit
+        # The meter may not be available yet (e.g. during startup): use the
+        # unit of its statistics, which the usage values are expressed in.
+        return self._statistics_unit
 
     def _default_history_start(self, today: date) -> date:
         if self.history_start is not None:
@@ -267,6 +275,8 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
             else:
                 start = today - timedelta(days=REFRESH_DAYS)
             full_load = not self._history_loaded
+            if full_load and self.consumption_sensor:
+                await self._async_load_statistics_unit()
             await self._async_load_days(start, today)
             await self._async_load_today(today)
             self._history_loaded = True
@@ -276,6 +286,15 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
                 # Remove statistics written while the option was enabled.
                 get_instance(self.hass).async_clear_statistics(self.statistic_ids)
             return self._build_data(today)
+
+    async def _async_load_statistics_unit(self) -> None:
+        """Read the unit of the consumption meter's statistics."""
+        assert self.consumption_sensor is not None
+        metadata = await get_instance(self.hass).async_add_executor_job(
+            partial(get_metadata, self.hass, statistic_ids={self.consumption_sensor})
+        )
+        if meta := metadata.get(self.consumption_sensor):
+            self._statistics_unit = meta[1]["unit_of_measurement"]
 
     async def _async_load_days(self, start: date, today: date) -> None:
         """Read daily statistics for start..today into the cache."""
