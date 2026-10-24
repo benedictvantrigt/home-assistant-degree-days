@@ -27,17 +27,21 @@ from homeassistant.components.recorder.statistics import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_UNIT_OF_MEASUREMENT, UnitOfTemperature
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .calculations import (
     DayRecord,
     DegreeDayConfig,
+    Periods,
     PeriodSummary,
     build_day_record,
     compare,
+    preset_periods,
     same_day_previous_year,
     summarize,
+    validate_periods,
     year_start,
 )
 from .const import (
@@ -55,10 +59,15 @@ from .const import (
     DEFAULT_HEATING_LIMIT,
     DEFAULT_HISTORY_YEARS,
     DEFAULT_IMPORT_STATISTICS,
+    DEFAULT_PRESET,
     DEFAULT_WEIGHTING,
     DEFAULT_YEAR_START_MONTH,
     DOMAIN,
+    PERIOD_KEYS,
+    PRESET_CUSTOM,
+    PRESET_OPTIONS,
     REFRESH_DAYS,
+    STORAGE_VERSION,
     UNIT_DEGREE_DAYS,
     UPDATE_INTERVAL,
 )
@@ -84,6 +93,23 @@ class DegreeDaysData:
     year_to_yesterday: PeriodSummary
     year_last_year_to_date: PeriodSummary
     year_comparison: dict[str, Any]
+    period_comparison: PeriodComparison
+
+
+@dataclass(slots=True)
+class PeriodComparison:
+    """Result of the user-selected period comparison."""
+
+    periods: Periods
+    error: str | None = None
+    period_a: PeriodSummary | None = None
+    period_b: PeriodSummary | None = None
+    result: dict[str, Any] | None = None
+
+
+def comparison_store(hass: HomeAssistant, entry_id: str) -> Store[dict[str, Any]]:
+    """Return the store holding the comparison settings of an entry."""
+    return Store(hass, STORAGE_VERSION, f"{DOMAIN}.{entry_id}")
 
 
 def _local_midnight(day: date) -> datetime:
@@ -128,6 +154,9 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
             date.fromisoformat(history_start) if history_start else None
         )
         self.records: dict[date, DayRecord] = {}
+        self._store = comparison_store(hass, entry.entry_id)
+        self.preset: str = DEFAULT_PRESET
+        self._custom_periods: Periods | None = None
         self._history_loaded = False
         # Values last written per statistic and day, to skip unchanged writes.
         self._written: dict[str, dict[date, tuple[float, float]]] = {}
@@ -146,6 +175,82 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
         if self.history_start is not None:
             return self.history_start
         return date(today.year - DEFAULT_HISTORY_YEARS, 1, 1)
+
+    # Period comparison ---------------------------------------------------
+
+    async def async_load_comparison(self) -> None:
+        """Load the comparison settings saved by the date and select entities."""
+        if not (stored := await self._store.async_load()):
+            return
+        if stored.get("preset") in PRESET_OPTIONS:
+            self.preset = stored["preset"]
+        try:
+            self._custom_periods = Periods.from_dict(
+                {key: date.fromisoformat(stored[key]) for key in PERIOD_KEYS}
+            )
+        except (KeyError, TypeError, ValueError):
+            self._custom_periods = None
+
+    def current_periods(self, today: date | None = None) -> Periods:
+        """Return the periods currently being compared."""
+        today = today or dt_util.now().date()
+        periods = preset_periods(self.preset, today, self.year_start_month)
+        if periods is not None:
+            return periods
+        if self._custom_periods is not None:
+            return self._custom_periods
+        # Custom without saved dates: start from the default preset.
+        periods = preset_periods(DEFAULT_PRESET, today, self.year_start_month)
+        assert periods is not None
+        return periods
+
+    async def async_set_preset(self, preset: str) -> None:
+        """Select a preset.
+
+        Switching to "custom" restores the last custom dates, or starts from
+        the dates currently shown when there are none yet.
+        """
+        if preset == PRESET_CUSTOM and self._custom_periods is None:
+            self._custom_periods = self.current_periods()
+        self.preset = preset
+        await self._async_comparison_changed()
+
+    async def async_set_period_date(self, key: str, value: date) -> None:
+        """Change one date; this switches the comparison to custom."""
+        values = self.current_periods().as_dict()
+        values[key] = value
+        self._custom_periods = Periods.from_dict(values)
+        self.preset = PRESET_CUSTOM
+        await self._async_comparison_changed()
+
+    async def _async_comparison_changed(self) -> None:
+        data: dict[str, Any] = {"preset": self.preset}
+        if self._custom_periods is not None:
+            data.update(
+                {
+                    key: value.isoformat()
+                    for key, value in self._custom_periods.as_dict().items()
+                }
+            )
+        await self._store.async_save(data)
+        # Recalculate from the cached days only; no database access.
+        self.async_set_updated_data(self._build_data(dt_util.now().date()))
+
+    def _compare_periods(self, today: date) -> PeriodComparison:
+        periods = self.current_periods(today)
+        if error := validate_periods(periods):
+            return PeriodComparison(periods=periods, error=error)
+        period_a = self.summarize(periods.a_start, periods.a_end)
+        period_b = self.summarize(periods.b_start, periods.b_end)
+        if not period_a.days_with_temperature or not period_b.days_with_temperature:
+            error = "no_data"
+        return PeriodComparison(
+            periods=periods,
+            error=error,
+            period_a=period_a,
+            period_b=period_b,
+            result=compare(period_a, period_b),
+        )
 
     async def async_rebuild_history(self) -> None:
         """Discard the cache and read the complete history again."""
@@ -313,6 +418,7 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
             year_last_year_to_date=last_year_to_date,
             year_to_yesterday=year_to_yesterday,
             year_comparison=compare(last_year_to_date, year_to_yesterday),
+            period_comparison=self._compare_periods(today),
         )
 
     def summarize(self, start: date, end: date) -> PeriodSummary:

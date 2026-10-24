@@ -69,5 +69,27 @@ ATTR_GROUP_BY: Final = "group_by"
 
 GROUP_BY_OPTIONS: Final = ["day", "week", "month", "year"]
 
+# Period comparison presets. All presets end yesterday, so complete days are
+# compared. "custom" uses the dates set on the date entities.
+PRESET_CUSTOM: Final = "custom"
+PRESET_LAST_4_WEEKS: Final = "last_4_weeks"
+PRESET_MONTH_VS_LAST_YEAR: Final = "month_vs_last_year"
+PRESET_YEAR_VS_LAST_YEAR: Final = "year_vs_last_year"
+PRESET_OPTIONS: Final = [
+    PRESET_CUSTOM,
+    PRESET_LAST_4_WEEKS,
+    PRESET_MONTH_VS_LAST_YEAR,
+    PRESET_YEAR_VS_LAST_YEAR,
+]
+DEFAULT_PRESET: Final = PRESET_LAST_4_WEEKS
+
+PERIOD_A_START: Final = "period_a_start"
+PERIOD_A_END: Final = "period_a_end"
+PERIOD_B_START: Final = "period_b_start"
+PERIOD_B_END: Final = "period_b_end"
+PERIOD_KEYS: Final = [PERIOD_A_START, PERIOD_A_END, PERIOD_B_START, PERIOD_B_END]
+
+STORAGE_VERSION: Final = 1
+
 # Longest date range a service call may request (about 25 years).
 MAX_RANGE_DAYS: Final = 9132

@@ -167,6 +167,58 @@
       },
       "weather_corrected_difference_year": {
         "name": "Weather corrected difference with last year"
+      },
+      "comparison_weighted_degree_days_a": {
+        "name": "Comparison weighted degree days A"
+      },
+      "comparison_weighted_degree_days_b": {
+        "name": "Comparison weighted degree days B"
+      },
+      "comparison_weather_corrected_difference": {
+        "name": "Comparison weather corrected difference"
+      },
+      "comparison_usage_per_weighted_degree_day_difference": {
+        "name": "Comparison usage per weighted degree day difference"
+      },
+      "comparison_usage_difference": {
+        "name": "Comparison usage difference"
+      },
+      "comparison_usage_a": {
+        "name": "Comparison usage A"
+      },
+      "comparison_usage_b": {
+        "name": "Comparison usage B"
+      },
+      "comparison_usage_per_weighted_degree_day_a": {
+        "name": "Comparison usage per weighted degree day A"
+      },
+      "comparison_usage_per_weighted_degree_day_b": {
+        "name": "Comparison usage per weighted degree day B"
+      }
+    },
+    "date": {
+      "period_a_start": {
+        "name": "Period A start"
+      },
+      "period_a_end": {
+        "name": "Period A end"
+      },
+      "period_b_start": {
+        "name": "Period B start"
+      },
+      "period_b_end": {
+        "name": "Period B end"
+      }
+    },
+    "select": {
+      "comparison_preset": {
+        "name": "Comparison",
+        "state": {
+          "custom": "Custom dates",
+          "last_4_weeks": "Last 4 weeks vs previous 4 weeks",
+          "month_vs_last_year": "This month vs same month last year",
+          "year_vs_last_year": "This year vs last year"
+        }
       }
     }
   },

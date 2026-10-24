@@ -14,13 +14,17 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import PERCENTAGE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .calculations import PeriodSummary
-from .const import DOMAIN, UNIT_DEGREE_DAYS
-from .coordinator import DegreeDaysConfigEntry, DegreeDaysCoordinator, DegreeDaysData
+from .const import UNIT_DEGREE_DAYS
+from .coordinator import (
+    DegreeDaysConfigEntry,
+    DegreeDaysCoordinator,
+    DegreeDaysData,
+    PeriodComparison,
+)
+from .entity import DegreeDaysEntity
 
 PARALLEL_UPDATES = 0
 
@@ -46,6 +50,46 @@ def _summary_attrs(
     fn: Callable[[DegreeDaysData], PeriodSummary],
 ) -> Callable[[DegreeDaysData], dict[str, Any]]:
     return lambda data: fn(data).as_dict()
+
+
+def _comparison(key: str) -> Callable[[DegreeDaysData], float | None]:
+    def value(data: DegreeDaysData) -> float | None:
+        comparison = data.period_comparison
+        if comparison.error or comparison.result is None:
+            return None
+        return comparison.result[key]
+
+    return value
+
+
+def _comparison_period(
+    period: str, key: str
+) -> Callable[[DegreeDaysData], float | None]:
+    def value(data: DegreeDaysData) -> float | None:
+        comparison = data.period_comparison
+        summary = comparison.period_a if period == "a" else comparison.period_b
+        if comparison.error or summary is None:
+            return None
+        return getattr(summary, key)
+
+    return value
+
+
+def _comparison_attrs(data: DegreeDaysData) -> dict[str, Any]:
+    comparison: PeriodComparison = data.period_comparison
+    periods = comparison.periods
+    return {
+        "period_a": f"{periods.a_start.isoformat()} – {periods.a_end.isoformat()}",
+        "period_b": f"{periods.b_start.isoformat()} – {periods.b_end.isoformat()}",
+        "problem": comparison.error,
+        "period_a_summary": (
+            comparison.period_a.as_dict() if comparison.period_a else None
+        ),
+        "period_b_summary": (
+            comparison.period_b.as_dict() if comparison.period_b else None
+        ),
+        "comparison": comparison.result,
+    }
 
 
 TEMPERATURE_SENSORS: tuple[DegreeDaysSensorDescription, ...] = (
@@ -117,6 +161,18 @@ TEMPERATURE_SENSORS: tuple[DegreeDaysSensorDescription, ...] = (
         native_unit_of_measurement=UNIT_DEGREE_DAYS,
         value_fn=lambda d: d.previous_year.weighted_degree_days,
         attributes_fn=_summary_attrs(lambda d: d.previous_year),
+    ),
+    DegreeDaysSensorDescription(
+        key="comparison_weighted_degree_days_a",
+        translation_key="comparison_weighted_degree_days_a",
+        native_unit_of_measurement=UNIT_DEGREE_DAYS,
+        value_fn=_comparison_period("a", "weighted_degree_days"),
+    ),
+    DegreeDaysSensorDescription(
+        key="comparison_weighted_degree_days_b",
+        translation_key="comparison_weighted_degree_days_b",
+        native_unit_of_measurement=UNIT_DEGREE_DAYS,
+        value_fn=_comparison_period("b", "weighted_degree_days"),
     ),
 )
 
@@ -212,6 +268,58 @@ CONSUMPTION_SENSORS: tuple[DegreeDaysSensorDescription, ...] = (
         attributes_fn=lambda d: dict(d.year_comparison),
         digits=1,
     ),
+    DegreeDaysSensorDescription(
+        key="comparison_weather_corrected_difference",
+        translation_key="comparison_weather_corrected_difference",
+        native_unit_of_measurement=PERCENTAGE,
+        value_fn=_comparison("weather_corrected_difference_pct"),
+        attributes_fn=_comparison_attrs,
+        digits=1,
+    ),
+    DegreeDaysSensorDescription(
+        key="comparison_usage_per_weighted_degree_day_difference",
+        translation_key="comparison_usage_per_weighted_degree_day_difference",
+        native_unit_of_measurement=PERCENTAGE,
+        value_fn=_comparison("usage_per_weighted_degree_day_difference_pct"),
+        digits=1,
+    ),
+    DegreeDaysSensorDescription(
+        key="comparison_usage_difference",
+        translation_key="comparison_usage_difference",
+        native_unit_of_measurement=PERCENTAGE,
+        value_fn=_comparison("usage_difference_pct"),
+        digits=1,
+    ),
+    DegreeDaysSensorDescription(
+        key="comparison_usage_a",
+        translation_key="comparison_usage_a",
+        usage_unit=True,
+        value_fn=_comparison_period("a", "usage"),
+        digits=3,
+    ),
+    DegreeDaysSensorDescription(
+        key="comparison_usage_b",
+        translation_key="comparison_usage_b",
+        usage_unit=True,
+        value_fn=_comparison_period("b", "usage"),
+        digits=3,
+    ),
+    DegreeDaysSensorDescription(
+        key="comparison_usage_per_weighted_degree_day_a",
+        translation_key="comparison_usage_per_weighted_degree_day_a",
+        usage_unit=True,
+        per_degree_day=True,
+        value_fn=_comparison_period("a", "usage_per_weighted_degree_day"),
+        digits=4,
+    ),
+    DegreeDaysSensorDescription(
+        key="comparison_usage_per_weighted_degree_day_b",
+        translation_key="comparison_usage_per_weighted_degree_day_b",
+        usage_unit=True,
+        per_degree_day=True,
+        value_fn=_comparison_period("b", "usage_per_weighted_degree_day"),
+        digits=4,
+    ),
 )
 
 
@@ -230,10 +338,14 @@ async def async_setup_entry(
     )
 
 
-class DegreeDaysSensor(CoordinatorEntity[DegreeDaysCoordinator], SensorEntity):
+class DegreeDaysSensor(DegreeDaysEntity, SensorEntity):
     """A degree days sensor."""
 
-    _attr_has_entity_name = True
+    # The comparison details change with every update; keep them out of the
+    # recorder database (they remain visible as attributes).
+    _unrecorded_attributes = frozenset(
+        {"period_a_summary", "period_b_summary", "comparison"}
+    )
     entity_description: DegreeDaysSensorDescription
 
     def __init__(
@@ -242,15 +354,8 @@ class DegreeDaysSensor(CoordinatorEntity[DegreeDaysCoordinator], SensorEntity):
         description: DegreeDaysSensorDescription,
     ) -> None:
         """Initialise the sensor."""
-        super().__init__(coordinator)
+        super().__init__(coordinator, description.key)
         self.entity_description = description
-        entry = coordinator.config_entry
-        self._attr_unique_id = f"{entry.entry_id}_{description.key}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, entry.entry_id)},
-            name=entry.title,
-            entry_type=DeviceEntryType.SERVICE,
-        )
 
     @property
     def native_unit_of_measurement(self) -> str | None:

@@ -96,6 +96,41 @@ sensors) uses completed days only: this year up to and including yesterday,
 against last year up to the same date. Today's partial day is left out so it
 is not compared with a full day.
 
+## Comparing two periods
+
+The integration adds entities to compare any two periods on a dashboard:
+
+| Entity | Purpose |
+| --- | --- |
+| Comparison (select) | *Last 4 weeks vs previous 4 weeks*, *This month vs same month last year*, *This year vs last year* or *Custom dates* |
+| Period A start / end (date) | Reference period, e.g. before a change to your heating |
+| Period B start / end (date) | Period to compare, e.g. after the change |
+| Comparison weather corrected difference | **The main result**: % more (+) or less (−) gas in period B than period A would have used in B's weather |
+| Comparison usage per weighted degree day difference | Same, based on heating usage only (non-heating usage excluded) |
+| Comparison usage difference | Raw difference, not weather corrected |
+| Comparison usage / weighted degree days / usage per weighted degree day A and B | The underlying values |
+
+The presets end yesterday, so only complete days are compared. Changing a
+date switches to *Custom dates*; selecting *Custom dates* again later restores
+your own dates. The choice is kept across restarts. The comparison is
+calculated from data already in memory, so it updates immediately and does
+not query the database. When a period has no data, or an end date is before
+its start date, the sensors show *unknown* and the `problem` attribute says
+why.
+
+## Dashboard
+
+[`dashboards/degree_days.yaml`](dashboards/degree_days.yaml) is a ready-made
+dashboard with a *Compare periods* tab and an *Overview* tab:
+
+1. **Settings → Dashboards → Add dashboard → New dashboard from scratch.**
+2. Open it, click the pencil (edit), then **⋮ → Raw configuration editor**.
+3. Replace the contents with the file and save.
+
+It assumes the integration entry has the default name *Degree days* and the
+gas meter is `sensor.gas_consumption`; otherwise search and replace
+`degree_days_` and `sensor.gas_consumption`.
+
 ## Actions
 
 ### `degree_days.compare_periods`

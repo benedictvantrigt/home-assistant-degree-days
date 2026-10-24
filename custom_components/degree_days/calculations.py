@@ -11,7 +11,18 @@ from dataclasses import asdict, dataclass
 from datetime import date, timedelta
 from typing import Any
 
-from .const import NL_WEIGHT_FACTORS, WEIGHTING_NL
+from .const import (
+    MAX_RANGE_DAYS,
+    NL_WEIGHT_FACTORS,
+    PERIOD_A_END,
+    PERIOD_A_START,
+    PERIOD_B_END,
+    PERIOD_B_START,
+    PRESET_LAST_4_WEEKS,
+    PRESET_MONTH_VS_LAST_YEAR,
+    PRESET_YEAR_VS_LAST_YEAR,
+    WEIGHTING_NL,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -241,3 +252,69 @@ def group_periods(
     for day in iter_days(start, end):
         groups.setdefault(period_key(day, group_by), []).append(day)
     return [summarize(records, days[0], days[-1], config) for days in groups.values()]
+
+
+@dataclass(frozen=True, slots=True)
+class Periods:
+    """Two periods to compare: A is the reference, B the evaluated period."""
+
+    a_start: date
+    a_end: date
+    b_start: date
+    b_end: date
+
+    def as_dict(self) -> dict[str, date]:
+        """Return the dates keyed by the date entity keys."""
+        return {
+            PERIOD_A_START: self.a_start,
+            PERIOD_A_END: self.a_end,
+            PERIOD_B_START: self.b_start,
+            PERIOD_B_END: self.b_end,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, date]) -> Periods:
+        """Create periods from dates keyed by the date entity keys."""
+        return cls(
+            data[PERIOD_A_START],
+            data[PERIOD_A_END],
+            data[PERIOD_B_START],
+            data[PERIOD_B_END],
+        )
+
+
+def preset_periods(preset: str, today: date, year_start_month: int) -> Periods | None:
+    """Return the periods of a preset, or None for the custom preset.
+
+    Presets end yesterday so that only complete days are compared.
+    """
+    yesterday = today - timedelta(days=1)
+    if preset == PRESET_LAST_4_WEEKS:
+        b_start = yesterday - timedelta(days=27)
+        a_end = b_start - timedelta(days=1)
+        return Periods(a_end - timedelta(days=27), a_end, b_start, yesterday)
+    if preset == PRESET_MONTH_VS_LAST_YEAR:
+        b_start = yesterday.replace(day=1)
+    elif preset == PRESET_YEAR_VS_LAST_YEAR:
+        b_start = year_start(yesterday, year_start_month)
+    else:
+        return None
+    return Periods(
+        same_day_previous_year(b_start),
+        same_day_previous_year(yesterday),
+        b_start,
+        yesterday,
+    )
+
+
+def validate_periods(periods: Periods) -> str | None:
+    """Return a problem with the periods, or None when they are usable."""
+    for start, end in (
+        (periods.a_start, periods.a_end),
+        (periods.b_start, periods.b_end),
+    ):
+        if end < start:
+            return "end_before_start"
+        if (end - start).days >= MAX_RANGE_DAYS:
+            return "period_too_long"
+    return None

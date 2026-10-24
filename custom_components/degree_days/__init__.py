@@ -9,10 +9,10 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
-from .coordinator import DegreeDaysConfigEntry, DegreeDaysCoordinator
+from .coordinator import DegreeDaysConfigEntry, DegreeDaysCoordinator, comparison_store
 from .services import async_setup_services
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.DATE, Platform.SELECT, Platform.SENSOR]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -26,6 +26,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: DegreeDaysConfigEntry) -> bool:
     """Set up Degree Days from a config entry."""
     coordinator = DegreeDaysCoordinator(hass, entry)
+    await coordinator.async_load_comparison()
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
 
@@ -47,7 +48,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: DegreeDaysConfigEntry) 
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: DegreeDaysConfigEntry) -> None:
-    """Remove the degree day statistics written for a deleted entry."""
+    """Remove the statistics and settings stored for a deleted entry."""
+    await comparison_store(hass, entry.entry_id).async_remove()
     get_instance(hass).async_clear_statistics(
         [
             f"{DOMAIN}:{entry.entry_id.lower()}_degree_days",

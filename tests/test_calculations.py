@@ -6,12 +6,15 @@ import pytest
 
 from custom_components.degree_days.calculations import (
     DegreeDayConfig,
+    Periods,
     build_day_record,
     compare,
     degree_days,
     group_periods,
+    preset_periods,
     same_day_previous_year,
     summarize,
+    validate_periods,
     weight_factor,
     year_start,
 )
@@ -109,3 +112,40 @@ def test_empty_range() -> None:
     assert summary.days == 0
     assert summary.usage == 0.0
     assert summary.usage_per_weighted_degree_day is None
+
+
+def test_preset_periods() -> None:
+    """Presets end yesterday and compare equal lengths."""
+    today = date(2025, 3, 15)
+    p = preset_periods("last_4_weeks", today, 1)
+    assert (p.b_start, p.b_end) == (date(2025, 2, 15), date(2025, 3, 14))
+    assert (p.a_start, p.a_end) == (date(2025, 1, 18), date(2025, 2, 14))
+    p = preset_periods("month_vs_last_year", today, 1)
+    assert (p.a_start, p.a_end, p.b_start, p.b_end) == (
+        date(2024, 3, 1),
+        date(2024, 3, 14),
+        date(2025, 3, 1),
+        date(2025, 3, 14),
+    )
+    p = preset_periods("year_vs_last_year", today, 7)
+    assert (p.a_start, p.b_start) == (date(2023, 7, 1), date(2024, 7, 1))
+    assert preset_periods("custom", today, 1) is None
+    # On the first of the month "this month" means the previous month.
+    p = preset_periods("month_vs_last_year", date(2025, 3, 1), 1)
+    assert (p.b_start, p.b_end) == (date(2025, 2, 1), date(2025, 2, 28))
+
+
+def test_validate_periods() -> None:
+    """Invalid periods are reported."""
+    ok = Periods(
+        date(2025, 1, 1), date(2025, 1, 10), date(2025, 1, 11), date(2025, 1, 20)
+    )
+    assert validate_periods(ok) is None
+    bad = Periods(
+        date(2025, 1, 10), date(2025, 1, 1), date(2025, 1, 11), date(2025, 1, 20)
+    )
+    assert validate_periods(bad) == "end_before_start"
+    long = Periods(
+        date(1990, 1, 1), date(2025, 1, 1), date(2025, 1, 11), date(2025, 1, 20)
+    )
+    assert validate_periods(long) == "period_too_long"

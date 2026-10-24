@@ -167,6 +167,58 @@
       },
       "weather_corrected_difference_year": {
         "name": "Weergecorrigeerd verschil met vorig jaar"
+      },
+      "comparison_weighted_degree_days_a": {
+        "name": "Vergelijking gewogen graaddagen A"
+      },
+      "comparison_weighted_degree_days_b": {
+        "name": "Vergelijking gewogen graaddagen B"
+      },
+      "comparison_weather_corrected_difference": {
+        "name": "Vergelijking weergecorrigeerd verschil"
+      },
+      "comparison_usage_per_weighted_degree_day_difference": {
+        "name": "Vergelijking verschil verbruik per gewogen graaddag"
+      },
+      "comparison_usage_difference": {
+        "name": "Vergelijking verschil verbruik"
+      },
+      "comparison_usage_a": {
+        "name": "Vergelijking verbruik A"
+      },
+      "comparison_usage_b": {
+        "name": "Vergelijking verbruik B"
+      },
+      "comparison_usage_per_weighted_degree_day_a": {
+        "name": "Vergelijking verbruik per gewogen graaddag A"
+      },
+      "comparison_usage_per_weighted_degree_day_b": {
+        "name": "Vergelijking verbruik per gewogen graaddag B"
+      }
+    },
+    "date": {
+      "period_a_start": {
+        "name": "Begin periode A"
+      },
+      "period_a_end": {
+        "name": "Einde periode A"
+      },
+      "period_b_start": {
+        "name": "Begin periode B"
+      },
+      "period_b_end": {
+        "name": "Einde periode B"
+      }
+    },
+    "select": {
+      "comparison_preset": {
+        "name": "Vergelijking",
+        "state": {
+          "custom": "Eigen datums",
+          "last_4_weeks": "Laatste 4 weken vs 4 weken daarvoor",
+          "month_vs_last_year": "Deze maand vs zelfde maand vorig jaar",
+          "year_vs_last_year": "Dit jaar vs vorig jaar"
+        }
       }
     }
   },

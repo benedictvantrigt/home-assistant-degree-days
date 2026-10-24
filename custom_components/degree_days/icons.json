@@ -1,30 +1,120 @@
 {
   "entity": {
     "sensor": {
-      "degree_days_today": { "default": "mdi:thermometer-chevron-down" },
-      "degree_days_yesterday": { "default": "mdi:thermometer-chevron-down" },
-      "weighted_degree_days_today": { "default": "mdi:thermometer-chevron-down" },
-      "weighted_degree_days_yesterday": { "default": "mdi:thermometer-chevron-down" },
-      "weighted_degree_days_month": { "default": "mdi:calendar-month" },
-      "weighted_degree_days_year": { "default": "mdi:calendar" },
-      "weighted_degree_days_last_year_to_date": { "default": "mdi:calendar-arrow-left" },
-      "weighted_degree_days_previous_year": { "default": "mdi:calendar-arrow-left" },
-      "usage_today": { "default": "mdi:fire" },
-      "usage_yesterday": { "default": "mdi:fire" },
-      "usage_month": { "default": "mdi:fire" },
-      "usage_year": { "default": "mdi:fire" },
-      "usage_last_year_to_date": { "default": "mdi:fire" },
-      "usage_per_weighted_degree_day_yesterday": { "default": "mdi:scale-balance" },
-      "usage_per_weighted_degree_day_30d": { "default": "mdi:scale-balance" },
-      "usage_per_weighted_degree_day_year": { "default": "mdi:scale-balance" },
-      "usage_per_weighted_degree_day_previous_year": { "default": "mdi:scale-balance" },
-      "weather_corrected_usage_year": { "default": "mdi:weather-partly-snowy" },
-      "weather_corrected_difference_year": { "default": "mdi:compare-horizontal" }
+      "degree_days_today": {
+        "default": "mdi:thermometer-chevron-down"
+      },
+      "degree_days_yesterday": {
+        "default": "mdi:thermometer-chevron-down"
+      },
+      "weighted_degree_days_today": {
+        "default": "mdi:thermometer-chevron-down"
+      },
+      "weighted_degree_days_yesterday": {
+        "default": "mdi:thermometer-chevron-down"
+      },
+      "weighted_degree_days_month": {
+        "default": "mdi:calendar-month"
+      },
+      "weighted_degree_days_year": {
+        "default": "mdi:calendar"
+      },
+      "weighted_degree_days_last_year_to_date": {
+        "default": "mdi:calendar-arrow-left"
+      },
+      "weighted_degree_days_previous_year": {
+        "default": "mdi:calendar-arrow-left"
+      },
+      "usage_today": {
+        "default": "mdi:fire"
+      },
+      "usage_yesterday": {
+        "default": "mdi:fire"
+      },
+      "usage_month": {
+        "default": "mdi:fire"
+      },
+      "usage_year": {
+        "default": "mdi:fire"
+      },
+      "usage_last_year_to_date": {
+        "default": "mdi:fire"
+      },
+      "usage_per_weighted_degree_day_yesterday": {
+        "default": "mdi:scale-balance"
+      },
+      "usage_per_weighted_degree_day_30d": {
+        "default": "mdi:scale-balance"
+      },
+      "usage_per_weighted_degree_day_year": {
+        "default": "mdi:scale-balance"
+      },
+      "usage_per_weighted_degree_day_previous_year": {
+        "default": "mdi:scale-balance"
+      },
+      "weather_corrected_usage_year": {
+        "default": "mdi:weather-partly-snowy"
+      },
+      "weather_corrected_difference_year": {
+        "default": "mdi:compare-horizontal"
+      },
+      "comparison_weighted_degree_days_a": {
+        "default": "mdi:thermometer-chevron-down"
+      },
+      "comparison_weighted_degree_days_b": {
+        "default": "mdi:thermometer-chevron-down"
+      },
+      "comparison_weather_corrected_difference": {
+        "default": "mdi:compare-horizontal"
+      },
+      "comparison_usage_per_weighted_degree_day_difference": {
+        "default": "mdi:compare-horizontal"
+      },
+      "comparison_usage_difference": {
+        "default": "mdi:compare-horizontal"
+      },
+      "comparison_usage_a": {
+        "default": "mdi:fire"
+      },
+      "comparison_usage_b": {
+        "default": "mdi:fire"
+      },
+      "comparison_usage_per_weighted_degree_day_a": {
+        "default": "mdi:fire"
+      },
+      "comparison_usage_per_weighted_degree_day_b": {
+        "default": "mdi:fire"
+      }
+    },
+    "date": {
+      "period_a_start": {
+        "default": "mdi:calendar-start"
+      },
+      "period_a_end": {
+        "default": "mdi:calendar-end"
+      },
+      "period_b_start": {
+        "default": "mdi:calendar-start"
+      },
+      "period_b_end": {
+        "default": "mdi:calendar-end"
+      }
+    },
+    "select": {
+      "comparison_preset": {
+        "default": "mdi:calendar-range"
+      }
     }
   },
   "services": {
-    "compare_periods": { "service": "mdi:compare-horizontal" },
-    "get_daily_data": { "service": "mdi:table" },
-    "rebuild_history": { "service": "mdi:database-refresh" }
+    "compare_periods": {
+      "service": "mdi:compare-horizontal"
+    },
+    "get_daily_data": {
+      "service": "mdi:table"
+    },
+    "rebuild_history": {
+      "service": "mdi:database-refresh"
+    }
   }
 }

@@ -1,0 +1,115 @@
+# Degree Days dashboard
+#
+# Settings -> Dashboards -> Add dashboard -> "New dashboard from scratch",
+# open it, then (pencil) Edit -> three dots -> Raw configuration editor,
+# and replace the contents with this file.
+#
+# The entity ids assume the integration entry is called "Degree days" (the
+# default) and the gas meter is sensor.gas_consumption. If yours differ,
+# search and replace "degree_days_" and "sensor.gas_consumption".
+title: Degree days
+views:
+  - title: Compare periods
+    path: compare
+    icon: mdi:compare-horizontal
+    cards:
+      - type: tile
+        entity: sensor.degree_days_comparison_weather_corrected_difference
+        name: Weather corrected difference (B vs A)
+      - type: markdown
+        content: >-
+          {% set s = 'sensor.degree_days_comparison_weather_corrected_difference' %}
+          {% set problem = state_attr(s, 'problem') %}
+          **Period A** (reference): {{ state_attr(s, 'period_a') }}<br>
+          **Period B** (compared): {{ state_attr(s, 'period_b') }}
+
+          {% if problem == 'no_data' %}
+          ⚠️ One of the periods has no data.
+          {% elif problem == 'end_before_start' %}
+          ⚠️ An end date is before its start date.
+          {% elif problem == 'period_too_long' %}
+          ⚠️ A period is longer than about 25 years.
+          {% else %}
+          A negative percentage means period B used less gas than period A
+          would have used in the same weather.
+          {% endif %}
+      - type: entities
+        title: Periods
+        entities:
+          - entity: select.degree_days_comparison
+          - entity: date.degree_days_period_a_start
+          - entity: date.degree_days_period_a_end
+          - entity: date.degree_days_period_b_start
+          - entity: date.degree_days_period_b_end
+      - type: entities
+        title: Results
+        entities:
+          - entity: sensor.degree_days_comparison_weather_corrected_difference
+            name: Weather corrected difference
+          - entity: sensor.degree_days_comparison_usage_per_weighted_degree_day_difference
+            name: Usage per weighted degree day difference
+          - entity: sensor.degree_days_comparison_usage_difference
+            name: Usage difference (not weather corrected)
+          - type: section
+            label: Period A
+          - entity: sensor.degree_days_comparison_usage_a
+            name: Usage
+          - entity: sensor.degree_days_comparison_weighted_degree_days_a
+            name: Weighted degree days
+          - entity: sensor.degree_days_comparison_usage_per_weighted_degree_day_a
+            name: Usage per weighted degree day
+          - type: section
+            label: Period B
+          - entity: sensor.degree_days_comparison_usage_b
+            name: Usage
+          - entity: sensor.degree_days_comparison_weighted_degree_days_b
+            name: Weighted degree days
+          - entity: sensor.degree_days_comparison_usage_per_weighted_degree_day_b
+            name: Usage per weighted degree day
+
+  - title: Overview
+    path: overview
+    icon: mdi:thermometer-chevron-down
+    cards:
+      - type: grid
+        columns: 2
+        square: false
+        cards:
+          - type: tile
+            entity: sensor.degree_days_mean_outdoor_temperature_today
+            name: Mean temperature today
+          - type: tile
+            entity: sensor.degree_days_weighted_degree_days_today
+            name: Weighted degree days today
+          - type: tile
+            entity: sensor.degree_days_usage_today
+            name: Usage today
+          - type: tile
+            entity: sensor.degree_days_usage_per_weighted_degree_day_last_30_days
+            name: Usage per degree day (30 days)
+      - type: entities
+        title: This year vs last year
+        entities:
+          - entity: sensor.degree_days_weather_corrected_difference_with_last_year
+            name: Weather corrected difference
+          - entity: sensor.degree_days_usage_this_year
+            name: Usage this year
+          - entity: sensor.degree_days_usage_last_year_to_date
+            name: Usage last year to date
+          - entity: sensor.degree_days_weighted_degree_days_this_year
+            name: Weighted degree days this year
+          - entity: sensor.degree_days_weighted_degree_days_last_year_to_date
+            name: Weighted degree days last year to date
+          - entity: sensor.degree_days_usage_per_weighted_degree_day_this_year
+            name: Usage per weighted degree day this year
+          - entity: sensor.degree_days_usage_per_weighted_degree_day_previous_year
+            name: Usage per weighted degree day previous year
+      - type: statistics-graph
+        title: Gas per month
+        entities:
+          - sensor.gas_consumption
+        stat_types:
+          - change
+        period: month
+        chart_type: bar
+        days_to_show: 730
