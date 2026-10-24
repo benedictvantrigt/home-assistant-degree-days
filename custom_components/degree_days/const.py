@@ -16,6 +16,15 @@ CONF_BASELINE_USAGE: Final = "baseline_usage"
 CONF_YEAR_START_MONTH: Final = "year_start_month"
 CONF_HISTORY_START: Final = "history_start"
 CONF_IMPORT_STATISTICS: Final = "import_statistics"
+CONF_TEMPERATURE_SOURCE: Final = "temperature_source"
+CONF_LOCATION: Final = "location"
+CONF_KNMI_STATION: Final = "knmi_station"
+CONF_KNMI_STATION_NAME: Final = "knmi_station_name"
+
+SOURCE_SENSOR: Final = "sensor"
+SOURCE_OPEN_METEO: Final = "open_meteo"
+SOURCE_KNMI: Final = "knmi"
+SOURCE_OPTIONS: Final = [SOURCE_SENSOR, SOURCE_OPEN_METEO, SOURCE_KNMI]
 
 WEIGHTING_NONE: Final = "none"
 WEIGHTING_NL: Final = "nl"
@@ -93,3 +102,8 @@ STORAGE_VERSION: Final = 1
 
 # Longest date range a service call may request (about 25 years).
 MAX_RANGE_DAYS: Final = 9132
+
+# Remote temperature sources are queried at most this often.
+REMOTE_UPDATE_INTERVAL: Final = timedelta(hours=1)
+# Days before today that are refreshed from the provisional (recent) data.
+PROVISIONAL_DAYS: Final = 14

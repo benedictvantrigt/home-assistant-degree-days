@@ -19,6 +19,7 @@ class DegreeDaysEntity(CoordinatorEntity[DegreeDaysCoordinator]):
         super().__init__(coordinator)
         entry = coordinator.config_entry
         self._attr_unique_id = f"{entry.entry_id}_{key}"
+        self._attr_attribution = coordinator.attribution
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, entry.entry_id)},
             name=entry.title,

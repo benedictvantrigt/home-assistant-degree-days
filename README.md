@@ -51,7 +51,7 @@ Requires Home Assistant 2025.11 or newer.
 
 | Setting | Description |
 | --- | --- |
-| Outdoor temperature sensor | A temperature sensor with `state_class: measurement` (needed for long-term statistics). A sensor of a weather station near you or your own outdoor sensor. |
+| Temperature source | *Own outdoor temperature sensor*, *Open-Meteo* or *KNMI weather station*, see [Temperature sources](#temperature-sources). |
 | Consumption meter | Optional. A gas/energy meter with `state_class: total` or `total_increasing`. |
 | Base temperature | Degree days for a day = base − mean outdoor temperature. 18 °C is the Dutch standard. |
 | Heating limit | A day only counts when its mean temperature is below this value. Equal to the base temperature by default. |
@@ -63,12 +63,37 @@ Requires Home Assistant 2025.11 or newer.
 
 Add one entry per meter, e.g. one for gas and one for a heat pump.
 
+To change settings later: **Settings → Devices & services → Degree Days →
+Configure**, then *Calculation settings* or *Temperature source*.
+
+## Temperature sources
+
+| Source | What you need | Data |
+| --- | --- | --- |
+| **Own sensor** | An outdoor temperature sensor with `state_class: measurement` | The recorder's long-term statistics of that sensor, so its full history |
+| **Open-Meteo** | Nothing; the location defaults to your Home Assistant home | [ERA5-Land](https://open-meteo.com/en/docs/historical-weather-api) reanalysis (about 11 km grid) for history, the forecast model for the last days and today. Free for non-commercial use ([terms](https://open-meteo.com/en/terms)). Weather data by Open-Meteo.com (CC BY 4.0). |
+| **KNMI weather station** | A free API key for the EDR API from [developer.dataplatform.knmi.nl](https://developer.dataplatform.knmi.nl/); you then pick a station, the nearest is preselected | Validated daily mean temperature (TG), the same station data Mindergas uses. Validated data can be up to about ten working days late; until then the mean of the 10-minute observations is used, and replaced once the validated value is published. KNMI days are UTC days. |
+
+**Switching:** Configure → *Temperature source*. The entry reloads and all
+degree days are recalculated from the new source; the meter, calculation
+settings, comparisons and entity names stay the same, so dashboards keep
+working. Past comparisons can change, because the temperatures change.
+
+**Downloads:** the history of Open-Meteo or KNMI is downloaded once and
+cached in Home Assistant's `.storage` folder (about 100 KB for 10 years).
+Afterwards the recent days and today are refreshed at most once an hour.
+When the source cannot be reached, the integration keeps using the data it
+already has. When KNMI refuses the API key, Home Assistant asks for a new
+one. The `rebuild_history` action downloads everything again.
+
 ## How it is calculated
 
-- The mean temperature of a day is the average of the hourly means of the
-  local calendar day, read from the recorder statistics (the KNMI also
-  defines the daily mean as the average of 24 hourly values). Today's value
-  includes the 5-minute statistics and is updated every 10 minutes.
+- With your own sensor, the mean temperature of a day is the average of the
+  hourly means of the local calendar day, read from the recorder statistics
+  (the KNMI also defines the daily mean as the average of 24 hourly values).
+  Today's value includes the 5-minute statistics and is updated every 10
+  minutes. With Open-Meteo or KNMI the daily mean comes from that source
+  (see [Temperature sources](#temperature-sources)).
 - Degree days = `max(0, base − T_mean)` if `T_mean < heating limit`, else 0.
 - Weighted degree days = degree days × monthly factor.
 - Usage per day is the change of the meter's statistics during the local day.

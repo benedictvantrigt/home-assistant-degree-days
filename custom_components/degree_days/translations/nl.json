@@ -6,12 +6,12 @@
         "description": "Graaddagen worden berekend uit de langetermijnstatistieken van een buitentemperatuursensor. Kies optioneel een gas- of energiemeter om het verbruik aan graaddagen te koppelen.",
         "data": {
           "name": "Naam",
-          "temperature_sensor": "Buitentemperatuursensor",
-          "consumption_sensor": "Verbruiksmeter"
+          "consumption_sensor": "Verbruiksmeter",
+          "temperature_source": "Temperatuurbron"
         },
         "data_description": {
-          "temperature_sensor": "Sensor die de buitentemperatuur meet. Er zijn langetermijnstatistieken nodig (state class measurement).",
-          "consumption_sensor": "Optionele gas- of energiemeter (state class total of total_increasing), bijvoorbeeld de gasmeter van een P1/DSMR-lezer of de energiesensor van een warmtepomp."
+          "consumption_sensor": "Optionele gas- of energiemeter (state class total of total_increasing), bijvoorbeeld de gasmeter van een P1/DSMR-lezer of de energiesensor van een warmtepomp.",
+          "temperature_source": "Waar de buitentemperatuur vandaan komt: je eigen sensor, Open-Meteo (geen account, wereldwijd, modeldata) of een KNMI-weerstation (Nederland, gratis API-sleutel nodig)."
         }
       },
       "settings": {
@@ -34,18 +34,71 @@
           "history_start": "Oudste datum die uit de recorderstatistieken wordt gelezen. Leeg laten voor de laatste 10 jaar.",
           "import_statistics": "Sla (gewogen) graaddagen op als langetermijnstatistieken zodat ze per dag/week/maand/jaar te tonen en te vergelijken zijn in de statistiekgrafiekkaart."
         }
+      },
+      "source_sensor": {
+        "title": "Buitentemperatuursensor",
+        "data": {
+          "temperature_sensor": "Buitentemperatuursensor"
+        },
+        "data_description": {
+          "temperature_sensor": "Sensor die de buitentemperatuur meet. Er zijn langetermijnstatistieken nodig (state class measurement)."
+        }
+      },
+      "source_open_meteo": {
+        "title": "Locatie voor Open-Meteo",
+        "description": "De daggemiddelde temperaturen voor deze locatie komen van Open-Meteo: de ERA5-Land-heranalyse (raster van ongeveer 11 km) voor de historie en het verwachtingsmodel voor de laatste dagen. Gratis voor niet-commercieel gebruik. Weerdata van Open-Meteo.com (CC BY 4.0).",
+        "data": {
+          "location": "Locatie"
+        },
+        "data_description": {
+          "location": "Standaard je thuislocatie in Home Assistant."
+        }
+      },
+      "source_knmi": {
+        "title": "KNMI API-sleutel",
+        "description": "Vraag een gratis API-sleutel voor de EDR API aan via developer.dataplatform.knmi.nl. Gevalideerde daggegevens kunnen tot ongeveer tien werkdagen later verschijnen; tot die tijd wordt het gemiddelde van de 10-minutenwaarnemingen gebruikt.",
+        "data": {
+          "api_key": "API-sleutel"
+        }
+      },
+      "knmi_station": {
+        "title": "KNMI-weerstation",
+        "data": {
+          "knmi_station": "Station"
+        },
+        "data_description": {
+          "knmi_station": "Gesorteerd op afstand tot je thuislocatie in Home Assistant."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Nieuwe KNMI API-sleutel",
+        "description": "Het KNMI heeft de API-sleutel geweigerd. Voer een nieuwe sleutel in van developer.dataplatform.knmi.nl.",
+        "data": {
+          "api_key": "API-sleutel"
+        }
       }
     },
     "error": {
-      "heating_limit_above_base": "De stookgrens kan niet hoger zijn dan de basistemperatuur."
+      "heating_limit_above_base": "De stookgrens kan niet hoger zijn dan de basistemperatuur.",
+      "invalid_auth": "Het KNMI weigert deze API-sleutel.",
+      "cannot_connect": "Kan geen verbinding maken met het KNMI. Probeer het later opnieuw.",
+      "no_stations": "Het KNMI gaf geen weerstations terug."
     },
     "abort": {
-      "already_configured": "Deze sensoren zijn al ingesteld."
+      "already_configured": "Deze sensoren zijn al ingesteld.",
+      "reauth_successful": "De API-sleutel is bijgewerkt."
     }
   },
   "options": {
     "step": {
       "init": {
+        "title": "Degree Days",
+        "menu_options": {
+          "settings": "Rekeninstellingen",
+          "temperature_source": "Temperatuurbron"
+        }
+      },
+      "settings": {
         "title": "Rekeninstellingen",
         "data": {
           "base_temperature": "Basistemperatuur",
@@ -65,10 +118,55 @@
           "history_start": "Oudste datum die uit de recorderstatistieken wordt gelezen. Leeg laten voor de laatste 10 jaar.",
           "import_statistics": "Sla (gewogen) graaddagen op als langetermijnstatistieken zodat ze per dag/week/maand/jaar te tonen en te vergelijken zijn in de statistiekgrafiekkaart."
         }
+      },
+      "temperature_source": {
+        "title": "Temperatuurbron",
+        "description": "Bij een andere bron worden alle graaddagen opnieuw berekend uit de nieuwe bron. Je meter, instellingen en vergelijkingen blijven behouden.",
+        "data": {
+          "temperature_source": "Temperatuurbron"
+        }
+      },
+      "source_sensor": {
+        "title": "Buitentemperatuursensor",
+        "data": {
+          "temperature_sensor": "Buitentemperatuursensor"
+        },
+        "data_description": {
+          "temperature_sensor": "Sensor die de buitentemperatuur meet. Er zijn langetermijnstatistieken nodig (state class measurement)."
+        }
+      },
+      "source_open_meteo": {
+        "title": "Locatie voor Open-Meteo",
+        "description": "De daggemiddelde temperaturen voor deze locatie komen van Open-Meteo: de ERA5-Land-heranalyse (raster van ongeveer 11 km) voor de historie en het verwachtingsmodel voor de laatste dagen. Gratis voor niet-commercieel gebruik. Weerdata van Open-Meteo.com (CC BY 4.0).",
+        "data": {
+          "location": "Locatie"
+        },
+        "data_description": {
+          "location": "Standaard je thuislocatie in Home Assistant."
+        }
+      },
+      "source_knmi": {
+        "title": "KNMI API-sleutel",
+        "description": "Vraag een gratis API-sleutel voor de EDR API aan via developer.dataplatform.knmi.nl. Gevalideerde daggegevens kunnen tot ongeveer tien werkdagen later verschijnen; tot die tijd wordt het gemiddelde van de 10-minutenwaarnemingen gebruikt.",
+        "data": {
+          "api_key": "API-sleutel"
+        }
+      },
+      "knmi_station": {
+        "title": "KNMI-weerstation",
+        "data": {
+          "knmi_station": "Station"
+        },
+        "data_description": {
+          "knmi_station": "Gesorteerd op afstand tot je thuislocatie in Home Assistant."
+        }
       }
     },
     "error": {
-      "heating_limit_above_base": "De stookgrens kan niet hoger zijn dan de basistemperatuur."
+      "heating_limit_above_base": "De stookgrens kan niet hoger zijn dan de basistemperatuur.",
+      "invalid_auth": "Het KNMI weigert deze API-sleutel.",
+      "cannot_connect": "Kan geen verbinding maken met het KNMI. Probeer het later opnieuw.",
+      "no_stations": "Het KNMI gaf geen weerstations terug."
     }
   },
   "selector": {
@@ -100,6 +198,13 @@
         "week": "Week",
         "month": "Maand",
         "year": "Jaar"
+      }
+    },
+    "temperature_source": {
+      "options": {
+        "sensor": "Eigen buitentemperatuursensor",
+        "open_meteo": "Open-Meteo (geen account nodig)",
+        "knmi": "KNMI-weerstation (API-sleutel nodig)"
       }
     }
   },

@@ -6,12 +6,12 @@
         "description": "Degree days are calculated from the long-term statistics of an outdoor temperature sensor. Optionally select a gas or energy meter to relate consumption to degree days.",
         "data": {
           "name": "Name",
-          "temperature_sensor": "Outdoor temperature sensor",
-          "consumption_sensor": "Consumption meter"
+          "consumption_sensor": "Consumption meter",
+          "temperature_source": "Temperature source"
         },
         "data_description": {
-          "temperature_sensor": "Sensor measuring the outdoor temperature. It needs long-term statistics (state class measurement).",
-          "consumption_sensor": "Optional gas or energy meter (state class total or total_increasing), e.g. the gas meter of a P1/DSMR reader or a heat pump energy sensor."
+          "consumption_sensor": "Optional gas or energy meter (state class total or total_increasing), e.g. the gas meter of a P1/DSMR reader or a heat pump energy sensor.",
+          "temperature_source": "Where the outdoor temperature comes from: your own sensor, Open-Meteo (no account, worldwide, model data) or a KNMI weather station (Netherlands, free API key needed)."
         }
       },
       "settings": {
@@ -34,18 +34,71 @@
           "history_start": "Oldest date read from the recorder statistics. Leave empty to read the last 10 years.",
           "import_statistics": "Store (weighted) degree days as long-term statistics so they can be shown and compared per day/week/month/year in the statistics graph card."
         }
+      },
+      "source_sensor": {
+        "title": "Outdoor temperature sensor",
+        "data": {
+          "temperature_sensor": "Outdoor temperature sensor"
+        },
+        "data_description": {
+          "temperature_sensor": "Sensor measuring the outdoor temperature. It needs long-term statistics (state class measurement)."
+        }
+      },
+      "source_open_meteo": {
+        "title": "Open-Meteo location",
+        "description": "Daily mean temperatures for this location come from Open-Meteo: the ERA5-Land reanalysis (about 11 km grid) for history and the forecast model for the last days. Free for non-commercial use. Weather data by Open-Meteo.com (CC BY 4.0).",
+        "data": {
+          "location": "Location"
+        },
+        "data_description": {
+          "location": "Defaults to your Home Assistant home location."
+        }
+      },
+      "source_knmi": {
+        "title": "KNMI API key",
+        "description": "Request a free API key for the EDR API at developer.dataplatform.knmi.nl. Validated daily data can be published up to about ten working days late; until then the mean of the 10-minute observations is used.",
+        "data": {
+          "api_key": "API key"
+        }
+      },
+      "knmi_station": {
+        "title": "KNMI weather station",
+        "data": {
+          "knmi_station": "Station"
+        },
+        "data_description": {
+          "knmi_station": "Sorted by distance from your Home Assistant home location."
+        }
+      },
+      "reauth_confirm": {
+        "title": "New KNMI API key",
+        "description": "KNMI refused the API key. Enter a new key from developer.dataplatform.knmi.nl.",
+        "data": {
+          "api_key": "API key"
+        }
       }
     },
     "error": {
-      "heating_limit_above_base": "The heating limit cannot be higher than the base temperature."
+      "heating_limit_above_base": "The heating limit cannot be higher than the base temperature.",
+      "invalid_auth": "KNMI refused this API key.",
+      "cannot_connect": "Could not connect to KNMI. Try again later.",
+      "no_stations": "KNMI returned no weather stations."
     },
     "abort": {
-      "already_configured": "These sensors are already configured."
+      "already_configured": "These sensors are already configured.",
+      "reauth_successful": "The API key has been updated."
     }
   },
   "options": {
     "step": {
       "init": {
+        "title": "Degree Days",
+        "menu_options": {
+          "settings": "Calculation settings",
+          "temperature_source": "Temperature source"
+        }
+      },
+      "settings": {
         "title": "Calculation settings",
         "data": {
           "base_temperature": "Base temperature",
@@ -65,10 +118,55 @@
           "history_start": "Oldest date read from the recorder statistics. Leave empty to read the last 10 years.",
           "import_statistics": "Store (weighted) degree days as long-term statistics so they can be shown and compared per day/week/month/year in the statistics graph card."
         }
+      },
+      "temperature_source": {
+        "title": "Temperature source",
+        "description": "Changing the source recalculates all degree days from the new source. Your meter, settings and comparisons are kept.",
+        "data": {
+          "temperature_source": "Temperature source"
+        }
+      },
+      "source_sensor": {
+        "title": "Outdoor temperature sensor",
+        "data": {
+          "temperature_sensor": "Outdoor temperature sensor"
+        },
+        "data_description": {
+          "temperature_sensor": "Sensor measuring the outdoor temperature. It needs long-term statistics (state class measurement)."
+        }
+      },
+      "source_open_meteo": {
+        "title": "Open-Meteo location",
+        "description": "Daily mean temperatures for this location come from Open-Meteo: the ERA5-Land reanalysis (about 11 km grid) for history and the forecast model for the last days. Free for non-commercial use. Weather data by Open-Meteo.com (CC BY 4.0).",
+        "data": {
+          "location": "Location"
+        },
+        "data_description": {
+          "location": "Defaults to your Home Assistant home location."
+        }
+      },
+      "source_knmi": {
+        "title": "KNMI API key",
+        "description": "Request a free API key for the EDR API at developer.dataplatform.knmi.nl. Validated daily data can be published up to about ten working days late; until then the mean of the 10-minute observations is used.",
+        "data": {
+          "api_key": "API key"
+        }
+      },
+      "knmi_station": {
+        "title": "KNMI weather station",
+        "data": {
+          "knmi_station": "Station"
+        },
+        "data_description": {
+          "knmi_station": "Sorted by distance from your Home Assistant home location."
+        }
       }
     },
     "error": {
-      "heating_limit_above_base": "The heating limit cannot be higher than the base temperature."
+      "heating_limit_above_base": "The heating limit cannot be higher than the base temperature.",
+      "invalid_auth": "KNMI refused this API key.",
+      "cannot_connect": "Could not connect to KNMI. Try again later.",
+      "no_stations": "KNMI returned no weather stations."
     }
   },
   "selector": {
@@ -100,6 +198,13 @@
         "week": "Week",
         "month": "Month",
         "year": "Year"
+      }
+    },
+    "temperature_source": {
+      "options": {
+        "sensor": "Own outdoor temperature sensor",
+        "open_meteo": "Open-Meteo (no account needed)",
+        "knmi": "KNMI weather station (API key needed)"
       }
     }
   },

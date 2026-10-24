@@ -11,6 +11,7 @@ from homeassistant.helpers.typing import ConfigType
 from .const import DOMAIN
 from .coordinator import DegreeDaysConfigEntry, DegreeDaysCoordinator, comparison_store
 from .services import async_setup_services
+from .sources import temperatures_store
 
 PLATFORMS: list[Platform] = [Platform.DATE, Platform.SELECT, Platform.SENSOR]
 
@@ -27,6 +28,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: DegreeDaysConfigEntry) -
     """Set up Degree Days from a config entry."""
     coordinator = DegreeDaysCoordinator(hass, entry)
     await coordinator.async_load_comparison()
+    await coordinator.async_load_remote()
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator
 
@@ -50,6 +52,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: DegreeDaysConfigEntry) 
 async def async_remove_entry(hass: HomeAssistant, entry: DegreeDaysConfigEntry) -> None:
     """Remove the statistics and settings stored for a deleted entry."""
     await comparison_store(hass, entry.entry_id).async_remove()
+    await temperatures_store(hass, entry.entry_id).async_remove()
     get_instance(hass).async_clear_statistics(
         [
             f"{DOMAIN}:{entry.entry_id.lower()}_degree_days",

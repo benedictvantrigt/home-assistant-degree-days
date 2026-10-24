@@ -29,8 +29,9 @@ from homeassistant.components.recorder.statistics import (
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_UNIT_OF_MEASUREMENT, UnitOfTemperature
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.storage import Store
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
 from .calculations import (
@@ -54,6 +55,7 @@ from .const import (
     CONF_HISTORY_START,
     CONF_IMPORT_STATISTICS,
     CONF_TEMPERATURE_SENSOR,
+    CONF_TEMPERATURE_SOURCE,
     CONF_WEIGHTING,
     CONF_YEAR_START_MONTH,
     DEFAULT_BASE_TEMPERATURE,
@@ -69,10 +71,12 @@ from .const import (
     PRESET_CUSTOM,
     PRESET_OPTIONS,
     REFRESH_DAYS,
+    SOURCE_SENSOR,
     STORAGE_VERSION,
     UNIT_DEGREE_DAYS,
     UPDATE_INTERVAL,
 )
+from .sources import RemoteTemperatures, SourceAuthError, SourceError, create_source
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -133,7 +137,17 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
             update_interval=UPDATE_INTERVAL,
         )
         options = {**entry.data, **entry.options}
-        self.temperature_sensor: str = options[CONF_TEMPERATURE_SENSOR]
+        self.temperature_source: str = options.get(
+            CONF_TEMPERATURE_SOURCE, SOURCE_SENSOR
+        )
+        self.temperature_sensor: str | None = None
+        self.remote: RemoteTemperatures | None = None
+        if self.temperature_source == SOURCE_SENSOR:
+            self.temperature_sensor = options[CONF_TEMPERATURE_SENSOR]
+        else:
+            self.remote = RemoteTemperatures(
+                hass, entry.entry_id, create_source(hass, options)
+            )
         self.consumption_sensor: str | None = options.get(CONF_CONSUMPTION_SENSOR)
         self.config = DegreeDayConfig(
             base_temperature=float(
@@ -260,12 +274,36 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
             result=compare(period_a, period_b),
         )
 
+    async def async_load_remote(self) -> None:
+        """Load the cached remote temperatures."""
+        if self.remote is not None:
+            await self.remote.async_load()
+
+    @property
+    def attribution(self) -> str | None:
+        """Return the credit line of the temperature source."""
+        return self.remote.source.attribution if self.remote else None
+
     async def async_rebuild_history(self) -> None:
         """Discard the cache and read the complete history again."""
         async with self._lock:
             self.records = {}
             self._history_loaded = False
+        if self.remote is not None:
+            await self.remote.async_clear()
         await self.async_refresh()
+
+    async def _async_update_remote(self, today: date) -> set[date]:
+        """Download new remote temperatures; return the days that changed."""
+        assert self.remote is not None
+        try:
+            return await self.remote.async_update(
+                self._default_history_start(today), today, dt_util.utcnow()
+            )
+        except SourceAuthError as err:
+            raise ConfigEntryAuthFailed(str(err)) from err
+        except SourceError as err:
+            raise UpdateFailed(str(err)) from err
 
     async def _async_update_data(self) -> DegreeDaysData:
         async with self._lock:
@@ -275,10 +313,24 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
             else:
                 start = today - timedelta(days=REFRESH_DAYS)
             full_load = not self._history_loaded
+            changed: set[date] = set()
+            if self.remote is not None:
+                changed = await self._async_update_remote(today)
             if full_load and self.consumption_sensor:
                 await self._async_load_statistics_unit()
             await self._async_load_days(start, today)
             await self._async_load_today(today)
+            # Remote values of older days can change later, e.g. when KNMI
+            # publishes the validated value of a day.
+            for day in changed:
+                if day < start:
+                    record = self.records.get(day)
+                    self.records[day] = build_day_record(
+                        day,
+                        self.remote.temperature(day) if self.remote else None,
+                        record.usage if record else None,
+                        self.config,
+                    )
             self._history_loaded = True
             if self.import_statistics:
                 self._import_statistics(today, full_load)
@@ -302,16 +354,21 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
         start_time = dt_util.as_utc(_local_midnight(start))
         end_time = dt_util.as_utc(_local_midnight(today + timedelta(days=1)))
 
-        temperatures = await recorder.async_add_executor_job(
-            statistics_during_period,
-            self.hass,
-            start_time,
-            end_time,
-            {self.temperature_sensor},
-            "day",
-            TEMPERATURE_UNITS,
-            {"mean"},
-        )
+        day_temps: dict[date, float] = {}
+        if self.temperature_sensor is not None:
+            temperatures = await recorder.async_add_executor_job(
+                statistics_during_period,
+                self.hass,
+                start_time,
+                end_time,
+                {self.temperature_sensor},
+                "day",
+                TEMPERATURE_UNITS,
+                {"mean"},
+            )
+            day_temps = self._rows_by_day(
+                temperatures.get(self.temperature_sensor, []), "mean"
+            )
         usages: dict[str, list[Any]] = {}
         if self.consumption_sensor:
             usages = await recorder.async_add_executor_job(
@@ -325,9 +382,6 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
                 {"change"},
             )
 
-        day_temps = self._rows_by_day(
-            temperatures.get(self.temperature_sensor, []), "mean"
-        )
         day_usage = (
             self._rows_by_day(usages.get(self.consumption_sensor, []), "change")
             if self.consumption_sensor
@@ -336,7 +390,11 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
 
         current = start
         while current <= today:
-            temp = day_temps.get(current)
+            temp = (
+                self.remote.temperature(current)
+                if self.remote is not None
+                else day_temps.get(current)
+            )
             usage = day_usage.get(current)
             if temp is not None or usage is not None:
                 self.records[current] = build_day_record(
@@ -355,12 +413,10 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
             result[start.date()] = float(value)
         return result
 
-    async def _async_load_today(self, today: date) -> None:
-        """Read today's values including the 5 minute statistics."""
-        recorder = get_instance(self.hass)
-        start_time = dt_util.as_utc(_local_midnight(today))
-
-        temp_result = await recorder.async_add_executor_job(
+    async def _async_sensor_today(self, start_time: datetime) -> float | None:
+        """Return today's mean of the temperature sensor so far."""
+        assert self.temperature_sensor is not None
+        result = await get_instance(self.hass).async_add_executor_job(
             statistic_during_period,
             self.hass,
             start_time,
@@ -369,19 +425,33 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
             {"mean"},
             TEMPERATURE_UNITS,
         )
-        temperature = temp_result.get("mean")
-        if temperature is None and (
-            state := self.hass.states.get(self.temperature_sensor)
+        if (mean := result.get("mean")) is not None:
+            return float(mean)
+        # No statistics yet for today: use the current state.
+        if (state := self.hass.states.get(self.temperature_sensor)) is None:
+            return None
+        try:
+            temperature = float(state.state)
+        except ValueError:
+            return None
+        if (
+            state.attributes.get(ATTR_UNIT_OF_MEASUREMENT)
+            == UnitOfTemperature.FAHRENHEIT
         ):
-            # No statistics yet for today: use the current state.
-            try:
-                temperature = float(state.state)
-            except ValueError:
-                temperature = None
-            else:
-                unit = state.attributes.get(ATTR_UNIT_OF_MEASUREMENT)
-                if unit == UnitOfTemperature.FAHRENHEIT:
-                    temperature = (temperature - 32) * 5 / 9
+            temperature = (temperature - 32) * 5 / 9
+        return temperature
+
+    async def _async_load_today(self, today: date) -> None:
+        """Read today's values including the 5 minute statistics."""
+        recorder = get_instance(self.hass)
+        start_time = dt_util.as_utc(_local_midnight(today))
+
+        temperature: float | None = None
+        if self.remote is not None:
+            temperature = self.remote.temperature(today)
+        else:
+            assert self.temperature_sensor is not None
+            temperature = await self._async_sensor_today(start_time)
 
         usage = None
         if self.consumption_sensor:
