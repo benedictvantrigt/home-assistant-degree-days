@@ -1,11 +1,16 @@
 name: Release
 
-# Push a tag like v1.2.3 to publish a GitHub release. HACS lists releases
-# as the versions you can install.
+# Publishes a GitHub release (and tag) for the version in manifest.json when
+# that version has no release yet. HACS lists releases as the versions you
+# can install. To release, bump "version" in manifest.json on main.
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
+    paths:
+      - custom_components/degree_days/manifest.json
+      - .github/workflows/release.yml
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -15,14 +20,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check that the tag matches manifest.json
-        run: |
-          version=$(python3 -c "import json; print(json.load(open('custom_components/degree_days/manifest.json'))['version'])")
-          if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
-            echo "::error::Tag ${GITHUB_REF_NAME} does not match manifest version ${version}"
-            exit 1
-          fi
-      - name: Create release
+      - name: Create release for the manifest version
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --generate-notes --verify-tag
+        run: |
+          version=$(python3 -c "import json; print(json.load(open('custom_components/degree_days/manifest.json'))['version'])")
+          tag="v${version}"
+          if gh release view "${tag}" > /dev/null 2>&1; then
+            echo "Release ${tag} already exists"
+            exit 0
+          fi
+          gh release create "${tag}" --target "${GITHUB_SHA}" --title "${tag}" --generate-notes

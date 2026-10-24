@@ -177,13 +177,9 @@ entities:
 
 ## Releasing a new version
 
-1. Set the new version in `custom_components/degree_days/manifest.json`
-   and commit it to `main`.
-2. Tag the commit and push the tag, e.g.
-   `git tag v0.2.2 && git push origin v0.2.2`.
-
-The *Release* workflow checks that the tag matches the manifest version and
-publishes a GitHub release, which HACS shows as the installable version.
+Set the new `version` in `custom_components/degree_days/manifest.json` and
+push it to `main`. The *Release* workflow then creates the tag (e.g.
+`v0.2.2`) and a GitHub release, which HACS shows as the installable version.
 
 ## Notes
 
