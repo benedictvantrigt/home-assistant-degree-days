@@ -175,6 +175,16 @@ entities:
   - degree_days:<entry id in lowercase>_weighted_degree_days
 ```
 
+## Releasing a new version
+
+1. Set the new version in `custom_components/degree_days/manifest.json`
+   and commit it to `main`.
+2. Tag the commit and push the tag, e.g.
+   `git tag v0.2.2 && git push origin v0.2.2`.
+
+The *Release* workflow checks that the tag matches the manifest version and
+publishes a GitHub release, which HACS shows as the installable version.
+
 ## Notes
 
 - The degree day statistics are rewritten from scratch each time Home
