@@ -21,6 +21,8 @@
           "heating_limit": "Stookgrens",
           "weighting": "Weging",
           "baseline_usage": "Verbruik zonder verwarming per dag",
+          "indoor_temperature_sensor": "Binnentemperatuursensor",
+          "indoor_reference_temperature": "Referentiebinnentemperatuur",
           "year_start_month": "Eerste maand van het jaar",
           "history_start": "Historie lezen vanaf",
           "import_statistics": "Graaddagstatistieken opslaan"
@@ -30,6 +32,8 @@
           "heating_limit": "Een dag telt alleen mee als de gemiddelde buitentemperatuur onder deze grens ligt. Meestal gelijk aan de basistemperatuur.",
           "weighting": "Nederlandse weging vermenigvuldigt graaddagen met 1,1 (nov-feb), 1,0 (mrt, okt) en 0,8 (apr-sep) als correctie voor zoninstraling, zoals Mindergas en energieleveranciers doen.",
           "baseline_usage": "Dagelijks verbruik dat niet met verwarmen te maken heeft (warm water, koken), in de eenheid van de meter. Dit wordt afgetrokken voordat het verbruik per graaddag wordt berekend.",
+          "indoor_temperature_sensor": "Optioneel. Corrigeert graaddagen voor hoe warm je je huis stookt: per dag verschuiven de basistemperatuur en de stookgrens met de gemiddelde binnentemperatuur van die dag min de referentiebinnentemperatuur. Vaker thuis zijn en langer stoken verhoogt het verbruik per graaddag dan niet meer. Dagen zonder binnentemperatuur gebruiken de basistemperatuur zoals ingesteld.",
+          "indoor_reference_temperature": "Gemiddelde binnentemperatuur waar de basistemperatuur bij hoort: de gemiddelde binnentemperatuur van je huis in een periode die je normaal vindt. Dagen met deze temperatuur krijgen de basistemperatuur zoals ingesteld. Wordt alleen gebruikt met een binnentemperatuursensor.",
           "year_start_month": "Maand waarin de jaartotalen beginnen, bijv. januari voor kalenderjaren of juli/augustus voor stookseizoenen.",
           "history_start": "Oudste datum die uit de recorderstatistieken wordt gelezen. Leeg laten voor de laatste 10 jaar.",
           "import_statistics": "Sla (gewogen) graaddagen op als langetermijnstatistieken zodat ze per dag/week/maand/jaar te tonen en te vergelijken zijn in de statistiekgrafiekkaart."
@@ -105,6 +109,8 @@
           "heating_limit": "Stookgrens",
           "weighting": "Weging",
           "baseline_usage": "Verbruik zonder verwarming per dag",
+          "indoor_temperature_sensor": "Binnentemperatuursensor",
+          "indoor_reference_temperature": "Referentiebinnentemperatuur",
           "year_start_month": "Eerste maand van het jaar",
           "history_start": "Historie lezen vanaf",
           "import_statistics": "Graaddagstatistieken opslaan"
@@ -114,6 +120,8 @@
           "heating_limit": "Een dag telt alleen mee als de gemiddelde buitentemperatuur onder deze grens ligt. Meestal gelijk aan de basistemperatuur.",
           "weighting": "Nederlandse weging vermenigvuldigt graaddagen met 1,1 (nov-feb), 1,0 (mrt, okt) en 0,8 (apr-sep) als correctie voor zoninstraling, zoals Mindergas en energieleveranciers doen.",
           "baseline_usage": "Dagelijks verbruik dat niet met verwarmen te maken heeft (warm water, koken), in de eenheid van de meter. Dit wordt afgetrokken voordat het verbruik per graaddag wordt berekend.",
+          "indoor_temperature_sensor": "Optioneel. Corrigeert graaddagen voor hoe warm je je huis stookt: per dag verschuiven de basistemperatuur en de stookgrens met de gemiddelde binnentemperatuur van die dag min de referentiebinnentemperatuur. Vaker thuis zijn en langer stoken verhoogt het verbruik per graaddag dan niet meer. Dagen zonder binnentemperatuur gebruiken de basistemperatuur zoals ingesteld.",
+          "indoor_reference_temperature": "Gemiddelde binnentemperatuur waar de basistemperatuur bij hoort: de gemiddelde binnentemperatuur van je huis in een periode die je normaal vindt. Dagen met deze temperatuur krijgen de basistemperatuur zoals ingesteld. Wordt alleen gebruikt met een binnentemperatuursensor.",
           "year_start_month": "Maand waarin de jaartotalen beginnen, bijv. januari voor kalenderjaren of juli/augustus voor stookseizoenen.",
           "history_start": "Oudste datum die uit de recorderstatistieken wordt gelezen. Leeg laten voor de laatste 10 jaar.",
           "import_statistics": "Sla (gewogen) graaddagen op als langetermijnstatistieken zodat ze per dag/week/maand/jaar te tonen en te vergelijken zijn in de statistiekgrafiekkaart."
@@ -215,6 +223,12 @@
       },
       "mean_temperature_yesterday": {
         "name": "Gemiddelde buitentemperatuur gisteren"
+      },
+      "mean_indoor_temperature_today": {
+        "name": "Gemiddelde binnentemperatuur vandaag"
+      },
+      "mean_indoor_temperature_yesterday": {
+        "name": "Gemiddelde binnentemperatuur gisteren"
       },
       "degree_days_today": {
         "name": "Graaddagen vandaag"

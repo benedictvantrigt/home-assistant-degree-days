@@ -8,6 +8,8 @@ from typing import Final
 DOMAIN: Final = "degree_days"
 
 CONF_TEMPERATURE_SENSOR: Final = "temperature_sensor"
+CONF_INDOOR_TEMPERATURE_SENSOR: Final = "indoor_temperature_sensor"
+CONF_INDOOR_REFERENCE: Final = "indoor_reference_temperature"
 CONF_CONSUMPTION_SENSOR: Final = "consumption_sensor"
 CONF_BASE_TEMPERATURE: Final = "base_temperature"
 CONF_HEATING_LIMIT: Final = "heating_limit"
@@ -32,6 +34,11 @@ WEIGHTING_OPTIONS: Final = [WEIGHTING_NL, WEIGHTING_NONE]
 
 DEFAULT_BASE_TEMPERATURE: Final = 18.0
 DEFAULT_HEATING_LIMIT: Final = 18.0
+# Indoor temperature the base temperature corresponds to. The base (18 °C)
+# lies below usual indoor temperatures because internal and solar gains cover
+# the difference. With an indoor sensor, the base temperature and heating
+# limit of a day shift by (mean indoor temperature - this reference).
+DEFAULT_INDOOR_REFERENCE: Final = 20.0
 DEFAULT_WEIGHTING: Final = WEIGHTING_NL
 DEFAULT_BASELINE_USAGE: Final = 0.0
 DEFAULT_YEAR_START_MONTH: Final = 1

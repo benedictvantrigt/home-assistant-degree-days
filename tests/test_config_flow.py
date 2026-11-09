@@ -11,6 +11,8 @@ from custom_components.degree_days.const import (
     CONF_CONSUMPTION_SENSOR,
     CONF_HEATING_LIMIT,
     CONF_IMPORT_STATISTICS,
+    CONF_INDOOR_REFERENCE,
+    CONF_INDOOR_TEMPERATURE_SENSOR,
     CONF_KNMI_STATION,
     CONF_KNMI_STATION_NAME,
     CONF_LOCATION,
@@ -103,6 +105,41 @@ async def test_sensor_flow_and_settings_options(hass: HomeAssistant) -> None:
     assert entry.options[CONF_HEATING_LIMIT] == 15.5
     # The temperature source is kept when the settings change.
     assert entry.options[CONF_TEMPERATURE_SENSOR] == "sensor.outdoor"
+    assert CONF_INDOOR_TEMPERATURE_SENSOR not in entry.options
+    await hass.async_block_till_done()
+
+    # Add an indoor temperature sensor.
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "settings"}
+    )
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            **SETTINGS,
+            CONF_INDOOR_TEMPERATURE_SENSOR: "sensor.living_room",
+            CONF_INDOOR_REFERENCE: 19.5,
+        },
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert entry.options[CONF_INDOOR_TEMPERATURE_SENSOR] == "sensor.living_room"
+    assert entry.options[CONF_INDOOR_REFERENCE] == 19.5
+    await hass.async_block_till_done()
+    assert entry.runtime_data.config.indoor_reference == 19.5
+
+    # The form shows the indoor sensor; leaving it out removes it.
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "settings"}
+    )
+    marker, _ = _field(result, CONF_INDOOR_TEMPERATURE_SENSOR)
+    assert marker.description == {"suggested_value": "sensor.living_room"}
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], SETTINGS
+    )
+    assert CONF_INDOOR_TEMPERATURE_SENSOR not in entry.options
+    await hass.async_block_till_done()
+    assert entry.runtime_data.config.indoor_reference is None
 
 
 @pytest.mark.usefixtures("setup_integration_env", "weather")

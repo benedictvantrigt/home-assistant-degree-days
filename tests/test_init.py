@@ -16,6 +16,8 @@ from custom_components.degree_days.const import (
     CONF_CONSUMPTION_SENSOR,
     CONF_HEATING_LIMIT,
     CONF_IMPORT_STATISTICS,
+    CONF_INDOOR_REFERENCE,
+    CONF_INDOOR_TEMPERATURE_SENSOR,
     CONF_TEMPERATURE_SENSOR,
     CONF_WEIGHTING,
     CONF_YEAR_START_MONTH,
@@ -37,6 +39,7 @@ from homeassistant.util import dt as dt_util
 
 TEMP = "sensor.outdoor_temperature"
 GAS = "sensor.gas_meter"
+INDOOR = "sensor.living_room_temperature"
 
 
 def _import_history(hass: HomeAssistant, start: datetime, days: int) -> None:
@@ -286,3 +289,77 @@ async def test_unit_when_meter_not_available_yet(
     assert state.attributes["unit_of_measurement"] == "m³"
     state = hass.states.get("sensor.home_usage_per_weighted_degree_day_last_30_days")
     assert state.attributes["unit_of_measurement"] == "m³/°C·d"
+
+
+@pytest.mark.usefixtures("setup_integration_env")
+async def test_indoor_temperature_correction(
+    hass: HomeAssistant, freezer: FrozenDateTimeFactory
+) -> None:
+    """Days with indoor statistics use a base shifted by indoor - reference."""
+    await hass.config.async_set_time_zone("Europe/Amsterdam")
+    tz = dt_util.get_default_time_zone()
+    freezer.move_to(dt_util.as_utc(datetime(2025, 1, 21, 12, 0, tzinfo=tz)))
+    hass.states.async_set(TEMP, "8.0", {"unit_of_measurement": "°C"})
+    hass.states.async_set(GAS, "100", {"unit_of_measurement": "m³"})
+    hass.states.async_set(INDOOR, "22.0", {"unit_of_measurement": "°C"})
+    start = dt_util.as_utc(datetime(2025, 1, 1, tzinfo=tz))
+    _import_history(hass, start, 20)  # 1..20 January
+    # Indoor statistics only for 1..10 January, 21 °C.
+    async_import_statistics(
+        hass,
+        StatisticMetaData(
+            mean_type=StatisticMeanType.ARITHMETIC,
+            has_sum=False,
+            name=None,
+            source="recorder",
+            statistic_id=INDOOR,
+            unit_class="temperature",
+            unit_of_measurement="°C",
+        ),
+        [
+            StatisticData(
+                start=start + timedelta(hours=hour), mean=21.0, min=21.0, max=21.0
+            )
+            for hour in range(10 * 24)
+        ],
+    )
+    await async_wait_recording_done(hass)
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        title="Home",
+        data={CONF_TEMPERATURE_SENSOR: TEMP, CONF_CONSUMPTION_SENSOR: GAS},
+        options={
+            CONF_WEIGHTING: "none",
+            CONF_IMPORT_STATISTICS: False,
+            CONF_INDOOR_TEMPERATURE_SENSOR: INDOOR,
+            CONF_INDOOR_REFERENCE: 20.0,
+        },
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    coordinator = entry.runtime_data
+    # 1..10 January: base 19 °C -> 5 days of 11 DD (8 °C) and 5 of 6 DD (13 °C).
+    first = coordinator.summarize(
+        datetime(2025, 1, 1).date(), datetime(2025, 1, 10).date()
+    )
+    assert first.degree_days == pytest.approx(85.0)
+    assert first.days_with_indoor_temperature == 10
+    assert first.mean_indoor_temperature == pytest.approx(21.0)
+    # 11..20 January have no indoor data: base 18 °C as configured.
+    second = coordinator.summarize(
+        datetime(2025, 1, 11).date(), datetime(2025, 1, 20).date()
+    )
+    assert second.degree_days == pytest.approx(75.0)
+    assert second.days_with_indoor_temperature == 0
+    assert hass.states.get("sensor.home_degree_days_yesterday").state == "5.0"
+    assert (
+        hass.states.get("sensor.home_mean_indoor_temperature_yesterday").state
+        == "unknown"
+    )
+    # Today has no statistics yet, so the current states are used: 22 °C
+    # indoors -> base 20 °C, 8 °C outdoors -> 12 DD.
+    assert hass.states.get("sensor.home_mean_indoor_temperature_today").state == "22.0"
+    assert hass.states.get("sensor.home_degree_days_today").state == "12.0"

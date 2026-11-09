@@ -27,6 +27,8 @@ from .const import (
     CONF_HEATING_LIMIT,
     CONF_HISTORY_START,
     CONF_IMPORT_STATISTICS,
+    CONF_INDOOR_REFERENCE,
+    CONF_INDOOR_TEMPERATURE_SENSOR,
     CONF_KNMI_STATION,
     CONF_KNMI_STATION_NAME,
     CONF_LOCATION,
@@ -38,6 +40,7 @@ from .const import (
     DEFAULT_BASELINE_USAGE,
     DEFAULT_HEATING_LIMIT,
     DEFAULT_IMPORT_STATISTICS,
+    DEFAULT_INDOOR_REFERENCE,
     DEFAULT_WEIGHTING,
     DEFAULT_YEAR_START_MONTH,
     DOMAIN,
@@ -125,6 +128,16 @@ def _options_schema(options: dict[str, Any]) -> vol.Schema:
                     min=0, max=1000, step=0.001, mode=selector.NumberSelectorMode.BOX
                 )
             ),
+            vol.Optional(
+                CONF_INDOOR_TEMPERATURE_SENSOR,
+                description={
+                    "suggested_value": options.get(CONF_INDOOR_TEMPERATURE_SENSOR)
+                },
+            ): TEMPERATURE_SELECTOR,
+            vol.Required(
+                CONF_INDOOR_REFERENCE,
+                default=options.get(CONF_INDOOR_REFERENCE, DEFAULT_INDOOR_REFERENCE),
+            ): _temperature_number(10, 30),
             vol.Required(
                 CONF_YEAR_START_MONTH,
                 default=str(
@@ -151,8 +164,9 @@ def _options_schema(options: dict[str, Any]) -> vol.Schema:
 def _clean_options(user_input: dict[str, Any]) -> dict[str, Any]:
     options = dict(user_input)
     options[CONF_YEAR_START_MONTH] = int(options[CONF_YEAR_START_MONTH])
-    if not options.get(CONF_HISTORY_START):
-        options.pop(CONF_HISTORY_START, None)
+    for key in (CONF_HISTORY_START, CONF_INDOOR_TEMPERATURE_SENSOR):
+        if not options.get(key):
+            options.pop(key, None)
     return options
 
 
