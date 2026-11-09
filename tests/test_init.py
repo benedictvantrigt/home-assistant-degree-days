@@ -342,7 +342,9 @@ async def test_indoor_temperature_correction(
 
     coordinator = entry.runtime_data
     # 1..10 January: base 19 °C -> 5 days of 11 DD (8 °C) and 5 of 6 DD (13 °C).
-    first = coordinator.summarize(datetime(2025, 1, 1).date(), datetime(2025, 1, 10).date())
+    first = coordinator.summarize(
+        datetime(2025, 1, 1).date(), datetime(2025, 1, 10).date()
+    )
     assert first.degree_days == pytest.approx(85.0)
     assert first.days_with_indoor_temperature == 10
     assert first.mean_indoor_temperature == pytest.approx(21.0)
@@ -359,7 +361,5 @@ async def test_indoor_temperature_correction(
     )
     # Today has no statistics yet, so the current states are used: 22 °C
     # indoors -> base 20 °C, 8 °C outdoors -> 12 DD.
-    assert (
-        hass.states.get("sensor.home_mean_indoor_temperature_today").state == "22.0"
-    )
+    assert hass.states.get("sensor.home_mean_indoor_temperature_today").state == "22.0"
     assert hass.states.get("sensor.home_degree_days_today").state == "12.0"
