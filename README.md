@@ -57,6 +57,8 @@ Requires Home Assistant 2025.11 or newer.
 | Heating limit | A day only counts when its mean temperature is below this value. Equal to the base temperature by default. |
 | Weighting | *Weighted (Netherlands / Mindergas)* or *Unweighted*. |
 | Non-heating usage per day | Subtracted from the daily usage before calculating usage per degree day. |
+| Indoor temperature sensor | Optional. Corrects degree days for how warm you keep your home, see [Indoor temperature correction](#indoor-temperature-correction). |
+| Indoor reference temperature | Mean indoor temperature the base temperature belongs to (default 20 °C). Only used with an indoor sensor. |
 | First month of the year | Start of the yearly totals: January for calendar years, e.g. July for heating seasons. |
 | Read history from | Oldest date to read. Empty = last 10 years. |
 | Write degree day statistics | Store degree days as long-term statistics for the statistics graph card. |
@@ -95,6 +97,9 @@ one. The `rebuild_history` action downloads everything again.
   minutes. With Open-Meteo or KNMI the daily mean comes from that source
   (see [Temperature sources](#temperature-sources)).
 - Degree days = `max(0, base − T_mean)` if `T_mean < heating limit`, else 0.
+- With an [indoor temperature sensor](#indoor-temperature-correction), the
+  base and heating limit of a day are first shifted by
+  `T_indoor − indoor reference`.
 - Weighted degree days = degree days × monthly factor.
 - Usage per day is the change of the meter's statistics during the local day.
 - Usage per weighted degree day = (usage − non-heating usage × days) ÷
@@ -104,11 +109,54 @@ one. The `rebuild_history` action downloads everything again.
   usage (B). This answers "what would I have used this year with last year's
   weather?".
 
+## Indoor temperature correction
+
+Normal degree days assume your home is always kept at the same temperature.
+Being home more (working from home, holidays, illness) usually means heating
+for more hours at the comfort temperature and less setback, so usage per
+degree day goes up even though nothing about the house changed.
+
+With an indoor temperature sensor, each day's degree days follow the day's
+mean indoor temperature:
+
+```
+shift          = T_indoor (daily mean) − indoor reference
+base of day    = base temperature + shift
+limit of day   = heating limit + shift
+degree days    = max(0, base of day − T_outdoor)  if T_outdoor < limit of day
+```
+
+The indoor reference is the indoor temperature your base temperature belongs
+to. The 18 °C base lies below usual indoor temperatures (about 19–21 °C)
+because heat from people, appliances and the sun covers the difference. Set
+the reference to your home's mean indoor temperature in a period you consider
+normal; the default is 20 °C. With a reference of 20 °C, a day at 21 °C
+indoors counts with a base of 19 °C, and a day at 19 °C with a base of
+17 °C. Days kept at the reference give the same result as without the sensor,
+so the numbers stay comparable with Mindergas.
+
+Notes:
+
+- Use a sensor (or a template/`min_max` mean of several rooms) that is
+  representative for the heated part of the house and has
+  `state_class: measurement`, so the recorder keeps its long-term statistics.
+  Its full history is used.
+- Days without indoor statistics (e.g. before the sensor existed) use the base
+  temperature as configured. The period summaries report
+  `days_with_indoor_temperature` and `mean_indoor_temperature`, so you can see
+  how much of a period was corrected.
+- This captures the effect of a higher or longer-held thermostat setting. It
+  does not capture heating rooms that the sensor does not measure, or the
+  extra heat people and appliances give off while you are home.
+- Changing the sensor or the reference recalculates all history, including the
+  degree day statistics.
+
 ## Sensors
 
 | Sensor | Notes |
 | --- | --- |
 | Mean outdoor temperature today / yesterday | °C |
+| Mean indoor temperature today / yesterday | °C; only with an indoor temperature sensor |
 | (Weighted) degree days today / yesterday | today is "so far" |
 | Weighted degree days this month / this year / last year to date / previous year | attributes contain the full period summary |
 | Usage today / yesterday / this month / this year / last year to date | unit of the meter |

@@ -21,6 +21,8 @@
           "heating_limit": "Heating limit",
           "weighting": "Weighting",
           "baseline_usage": "Non-heating usage per day",
+          "indoor_temperature_sensor": "Indoor temperature sensor",
+          "indoor_reference_temperature": "Indoor reference temperature",
           "year_start_month": "First month of the year",
           "history_start": "Read history from",
           "import_statistics": "Write degree day statistics"
@@ -30,6 +32,8 @@
           "heating_limit": "A day only counts when its mean outdoor temperature is below this limit (stookgrens). Usually equal to the base temperature.",
           "weighting": "Dutch weighting multiplies degree days by 1.1 (Nov-Feb), 1.0 (Mar, Oct) and 0.8 (Apr-Sep) to correct for solar gain, as used by Mindergas and Dutch energy suppliers.",
           "baseline_usage": "Consumption per day not related to heating (hot water, cooking), in the meter's unit. It is subtracted before calculating usage per degree day.",
+          "indoor_temperature_sensor": "Optional. Corrects degree days for how warm you keep your home: on each day the base temperature and heating limit move by the day's mean indoor temperature minus the indoor reference temperature. Being home more and heating longer then no longer raises usage per degree day. Days without indoor data use the base temperature as is.",
+          "indoor_reference_temperature": "Mean indoor temperature the base temperature belongs to: your home's mean indoor temperature in a period you consider normal. Days at this temperature get the base temperature as configured. Only used with an indoor temperature sensor.",
           "year_start_month": "Month in which the yearly totals start, e.g. January for calendar years or July/August for heating seasons.",
           "history_start": "Oldest date read from the recorder statistics. Leave empty to read the last 10 years.",
           "import_statistics": "Store (weighted) degree days as long-term statistics so they can be shown and compared per day/week/month/year in the statistics graph card."
@@ -105,6 +109,8 @@
           "heating_limit": "Heating limit",
           "weighting": "Weighting",
           "baseline_usage": "Non-heating usage per day",
+          "indoor_temperature_sensor": "Indoor temperature sensor",
+          "indoor_reference_temperature": "Indoor reference temperature",
           "year_start_month": "First month of the year",
           "history_start": "Read history from",
           "import_statistics": "Write degree day statistics"
@@ -114,6 +120,8 @@
           "heating_limit": "A day only counts when its mean outdoor temperature is below this limit (stookgrens). Usually equal to the base temperature.",
           "weighting": "Dutch weighting multiplies degree days by 1.1 (Nov-Feb), 1.0 (Mar, Oct) and 0.8 (Apr-Sep) to correct for solar gain, as used by Mindergas and Dutch energy suppliers.",
           "baseline_usage": "Consumption per day not related to heating (hot water, cooking), in the meter's unit. It is subtracted before calculating usage per degree day.",
+          "indoor_temperature_sensor": "Optional. Corrects degree days for how warm you keep your home: on each day the base temperature and heating limit move by the day's mean indoor temperature minus the indoor reference temperature. Being home more and heating longer then no longer raises usage per degree day. Days without indoor data use the base temperature as is.",
+          "indoor_reference_temperature": "Mean indoor temperature the base temperature belongs to: your home's mean indoor temperature in a period you consider normal. Days at this temperature get the base temperature as configured. Only used with an indoor temperature sensor.",
           "year_start_month": "Month in which the yearly totals start, e.g. January for calendar years or July/August for heating seasons.",
           "history_start": "Oldest date read from the recorder statistics. Leave empty to read the last 10 years.",
           "import_statistics": "Store (weighted) degree days as long-term statistics so they can be shown and compared per day/week/month/year in the statistics graph card."
@@ -215,6 +223,12 @@
       },
       "mean_temperature_yesterday": {
         "name": "Mean outdoor temperature yesterday"
+      },
+      "mean_indoor_temperature_today": {
+        "name": "Mean indoor temperature today"
+      },
+      "mean_indoor_temperature_yesterday": {
+        "name": "Mean indoor temperature yesterday"
       },
       "degree_days_today": {
         "name": "Degree days today"

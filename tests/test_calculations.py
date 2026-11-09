@@ -149,3 +149,42 @@ def test_validate_periods() -> None:
         date(1990, 1, 1), date(2025, 1, 1), date(2025, 1, 11), date(2025, 1, 20)
     )
     assert validate_periods(long) == "period_too_long"
+
+
+INDOOR = DegreeDayConfig(base_temperature=18, heating_limit=18, indoor_reference=20)
+
+
+@pytest.mark.parametrize(
+    ("outdoor", "indoor", "expected"),
+    [
+        (5.0, None, 13.0),  # no indoor data: base temperature as configured
+        (5.0, 20.0, 13.0),  # at the reference: unchanged
+        (5.0, 21.5, 14.5),  # 1.5 °C warmer indoors: base 19.5
+        (5.0, 18.0, 11.0),  # 2 °C cooler indoors: base 16
+        (18.5, 21.0, 0.5),  # heating limit moves up too (19 °C)
+        (16.5, 18.0, 0.0),  # heating limit moves down too (16 °C)
+    ],
+)
+def test_indoor_correction(
+    outdoor: float, indoor: float | None, expected: float
+) -> None:
+    """Base temperature and heating limit move with the indoor temperature."""
+    assert degree_days(outdoor, INDOOR, indoor) == pytest.approx(expected)
+
+
+def test_indoor_ignored_without_reference() -> None:
+    """Without indoor correction an indoor temperature changes nothing."""
+    assert degree_days(5.0, CONFIG, 23.0) == pytest.approx(13.0)
+
+
+def test_summary_indoor_temperature() -> None:
+    """The summary reports the mean indoor temperature of the counted days."""
+    records = {
+        date(2025, 1, 1): build_day_record(date(2025, 1, 1), 5.0, 1.0, INDOOR, 21.0),
+        date(2025, 1, 2): build_day_record(date(2025, 1, 2), 5.0, 1.0, INDOOR, 19.0),
+        date(2025, 1, 3): build_day_record(date(2025, 1, 3), 5.0, 1.0, INDOOR),
+    }
+    summary = summarize(records, date(2025, 1, 1), date(2025, 1, 3), INDOOR)
+    assert summary.days_with_indoor_temperature == 2
+    assert summary.mean_indoor_temperature == pytest.approx(20.0)
+    assert summary.degree_days == pytest.approx(14.0 + 12.0 + 13.0)

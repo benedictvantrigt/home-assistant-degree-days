@@ -176,6 +176,25 @@ TEMPERATURE_SENSORS: tuple[DegreeDaysSensorDescription, ...] = (
     ),
 )
 
+INDOOR_SENSORS: tuple[DegreeDaysSensorDescription, ...] = (
+    DegreeDaysSensorDescription(
+        key="mean_indoor_temperature_today",
+        translation_key="mean_indoor_temperature_today",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        value_fn=lambda d: d.today.indoor_temperature,
+        digits=1,
+    ),
+    DegreeDaysSensorDescription(
+        key="mean_indoor_temperature_yesterday",
+        translation_key="mean_indoor_temperature_yesterday",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        value_fn=lambda d: d.yesterday.indoor_temperature,
+        digits=1,
+    ),
+)
+
 CONSUMPTION_SENSORS: tuple[DegreeDaysSensorDescription, ...] = (
     DegreeDaysSensorDescription(
         key="usage_today",
@@ -331,6 +350,8 @@ async def async_setup_entry(
     """Set up the sensors."""
     coordinator = entry.runtime_data
     descriptions = list(TEMPERATURE_SENSORS)
+    if coordinator.indoor_sensor:
+        descriptions.extend(INDOOR_SENSORS)
     if coordinator.consumption_sensor:
         descriptions.extend(CONSUMPTION_SENSORS)
     async_add_entities(

@@ -33,6 +33,10 @@ class DegreeDayConfig:
     heating_limit: float = 18.0
     weighting: str = WEIGHTING_NL
     baseline_usage: float = 0.0
+    # Indoor temperature the base temperature belongs to. When set, days with
+    # a known mean indoor temperature use a base temperature and heating
+    # limit shifted by (indoor - indoor_reference). None disables this.
+    indoor_reference: float | None = None
 
 
 @dataclass(slots=True)
@@ -44,6 +48,7 @@ class DayRecord:
     degree_days: float | None = None
     weighted_degree_days: float | None = None
     usage: float | None = None
+    indoor_temperature: float | None = None
 
 
 @dataclass(slots=True)
@@ -55,7 +60,9 @@ class PeriodSummary:
     days: int
     days_with_temperature: int
     days_with_usage: int
+    days_with_indoor_temperature: int
     mean_temperature: float | None
+    mean_indoor_temperature: float | None
     degree_days: float
     weighted_degree_days: float
     usage: float
@@ -82,16 +89,36 @@ def weight_factor(day: date, weighting: str) -> float:
     return 1.0
 
 
-def degree_days(mean_temperature: float, config: DegreeDayConfig) -> float:
+def indoor_shift(indoor_temperature: float | None, config: DegreeDayConfig) -> float:
+    """Return how far a day's base temperature moves for its indoor temperature.
+
+    Without indoor correction, or without an indoor temperature for the day,
+    the base temperature is used as configured.
+    """
+    if config.indoor_reference is None or indoor_temperature is None:
+        return 0.0
+    return indoor_temperature - config.indoor_reference
+
+
+def degree_days(
+    mean_temperature: float,
+    config: DegreeDayConfig,
+    indoor_temperature: float | None = None,
+) -> float:
     """Return the (unweighted) heating degree days for one day.
 
     A day counts when its mean outdoor temperature is below the heating
     limit ("stookgrens"); the number of degree days is then the difference
     between the base (indoor reference) temperature and the mean.
+
+    With indoor correction both the base temperature and the heating limit
+    move with the day's mean indoor temperature: a day kept 1 °C warmer than
+    the reference counts as if the base temperature were 1 °C higher.
     """
-    if mean_temperature >= config.heating_limit:
+    shift = indoor_shift(indoor_temperature, config)
+    if mean_temperature >= config.heating_limit + shift:
         return 0.0
-    return max(0.0, config.base_temperature - mean_temperature)
+    return max(0.0, config.base_temperature + shift - mean_temperature)
 
 
 def build_day_record(
@@ -99,11 +126,17 @@ def build_day_record(
     mean_temperature: float | None,
     usage: float | None,
     config: DegreeDayConfig,
+    indoor_temperature: float | None = None,
 ) -> DayRecord:
     """Create a day record and derive its degree days."""
-    record = DayRecord(day=day, mean_temperature=mean_temperature, usage=usage)
+    record = DayRecord(
+        day=day,
+        mean_temperature=mean_temperature,
+        usage=usage,
+        indoor_temperature=indoor_temperature,
+    )
     if mean_temperature is not None:
-        record.degree_days = degree_days(mean_temperature, config)
+        record.degree_days = degree_days(mean_temperature, config, indoor_temperature)
         record.weighted_degree_days = record.degree_days * weight_factor(
             day, config.weighting
         )
@@ -131,7 +164,9 @@ def summarize(
     days = 0
     temp_days = 0
     usage_days = 0
+    indoor_days = 0
     temp_total = 0.0
+    indoor_total = 0.0
     dd_total = 0.0
     wdd_total = 0.0
     usage_total = 0.0
@@ -145,6 +180,9 @@ def summarize(
             temp_total += record.mean_temperature
             dd_total += record.degree_days or 0.0
             wdd_total += record.weighted_degree_days or 0.0
+            if record.indoor_temperature is not None:
+                indoor_days += 1
+                indoor_total += record.indoor_temperature
         if record.usage is not None:
             usage_days += 1
             usage_total += record.usage
@@ -160,7 +198,9 @@ def summarize(
         days=days,
         days_with_temperature=temp_days,
         days_with_usage=usage_days,
+        days_with_indoor_temperature=indoor_days,
         mean_temperature=temp_total / temp_days if temp_days else None,
+        mean_indoor_temperature=indoor_total / indoor_days if indoor_days else None,
         degree_days=dd_total,
         weighted_degree_days=wdd_total,
         usage=usage_total,

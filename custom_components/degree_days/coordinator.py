@@ -54,6 +54,8 @@ from .const import (
     CONF_HEATING_LIMIT,
     CONF_HISTORY_START,
     CONF_IMPORT_STATISTICS,
+    CONF_INDOOR_REFERENCE,
+    CONF_INDOOR_TEMPERATURE_SENSOR,
     CONF_TEMPERATURE_SENSOR,
     CONF_TEMPERATURE_SOURCE,
     CONF_WEIGHTING,
@@ -63,6 +65,7 @@ from .const import (
     DEFAULT_HEATING_LIMIT,
     DEFAULT_HISTORY_YEARS,
     DEFAULT_IMPORT_STATISTICS,
+    DEFAULT_INDOOR_REFERENCE,
     DEFAULT_PRESET,
     DEFAULT_WEIGHTING,
     DEFAULT_YEAR_START_MONTH,
@@ -149,6 +152,9 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
                 hass, entry.entry_id, create_source(hass, options)
             )
         self.consumption_sensor: str | None = options.get(CONF_CONSUMPTION_SENSOR)
+        self.indoor_sensor: str | None = (
+            options.get(CONF_INDOOR_TEMPERATURE_SENSOR) or None
+        )
         self.config = DegreeDayConfig(
             base_temperature=float(
                 options.get(CONF_BASE_TEMPERATURE, DEFAULT_BASE_TEMPERATURE)
@@ -157,6 +163,11 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
             weighting=options.get(CONF_WEIGHTING, DEFAULT_WEIGHTING),
             baseline_usage=float(
                 options.get(CONF_BASELINE_USAGE, DEFAULT_BASELINE_USAGE)
+            ),
+            indoor_reference=(
+                float(options.get(CONF_INDOOR_REFERENCE, DEFAULT_INDOOR_REFERENCE))
+                if self.indoor_sensor
+                else None
             ),
         )
         self.year_start_month = int(
@@ -330,6 +341,7 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
                         self.remote.temperature(day) if self.remote else None,
                         record.usage if record else None,
                         self.config,
+                        record.indoor_temperature if record else None,
                     )
             self._history_loaded = True
             if self.import_statistics:
@@ -355,20 +367,31 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
         end_time = dt_util.as_utc(_local_midnight(today + timedelta(days=1)))
 
         day_temps: dict[date, float] = {}
-        if self.temperature_sensor is not None:
+        day_indoor: dict[date, float] = {}
+        temperature_ids = {
+            entity_id
+            for entity_id in (self.temperature_sensor, self.indoor_sensor)
+            if entity_id is not None
+        }
+        if temperature_ids:
             temperatures = await recorder.async_add_executor_job(
                 statistics_during_period,
                 self.hass,
                 start_time,
                 end_time,
-                {self.temperature_sensor},
+                temperature_ids,
                 "day",
                 TEMPERATURE_UNITS,
                 {"mean"},
             )
-            day_temps = self._rows_by_day(
-                temperatures.get(self.temperature_sensor, []), "mean"
-            )
+            if self.temperature_sensor is not None:
+                day_temps = self._rows_by_day(
+                    temperatures.get(self.temperature_sensor, []), "mean"
+                )
+            if self.indoor_sensor is not None:
+                day_indoor = self._rows_by_day(
+                    temperatures.get(self.indoor_sensor, []), "mean"
+                )
         usages: dict[str, list[Any]] = {}
         if self.consumption_sensor:
             usages = await recorder.async_add_executor_job(
@@ -398,7 +421,7 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
             usage = day_usage.get(current)
             if temp is not None or usage is not None:
                 self.records[current] = build_day_record(
-                    current, temp, usage, self.config
+                    current, temp, usage, self.config, day_indoor.get(current)
                 )
             current += timedelta(days=1)
 
@@ -413,22 +436,23 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
             result[start.date()] = float(value)
         return result
 
-    async def _async_sensor_today(self, start_time: datetime) -> float | None:
-        """Return today's mean of the temperature sensor so far."""
-        assert self.temperature_sensor is not None
+    async def _async_sensor_today(
+        self, entity_id: str, start_time: datetime
+    ) -> float | None:
+        """Return today's mean of a temperature sensor so far."""
         result = await get_instance(self.hass).async_add_executor_job(
             statistic_during_period,
             self.hass,
             start_time,
             None,
-            self.temperature_sensor,
+            entity_id,
             {"mean"},
             TEMPERATURE_UNITS,
         )
         if (mean := result.get("mean")) is not None:
             return float(mean)
         # No statistics yet for today: use the current state.
-        if (state := self.hass.states.get(self.temperature_sensor)) is None:
+        if (state := self.hass.states.get(entity_id)) is None:
             return None
         try:
             temperature = float(state.state)
@@ -451,7 +475,14 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
             temperature = self.remote.temperature(today)
         else:
             assert self.temperature_sensor is not None
-            temperature = await self._async_sensor_today(start_time)
+            temperature = await self._async_sensor_today(
+                self.temperature_sensor, start_time
+            )
+        indoor = (
+            await self._async_sensor_today(self.indoor_sensor, start_time)
+            if self.indoor_sensor is not None
+            else None
+        )
 
         usage = None
         if self.consumption_sensor:
@@ -474,6 +505,7 @@ class DegreeDaysCoordinator(DataUpdateCoordinator[DegreeDaysData]):
             float(temperature) if temperature is not None else None,
             float(usage) if usage is not None else None,
             self.config,
+            indoor,
         )
 
     def _build_data(self, today: date) -> DegreeDaysData:
