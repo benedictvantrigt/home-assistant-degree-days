@@ -31,7 +31,20 @@ your Home Assistant recorder.
 
 ## Installation
 
+### HACS (recommended)
+
+Degree Days is available in the default HACS store.
+
+[![Open your Home Assistant instance and open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=benedictvantrigt&repository=home-assistant-degree-days&category=integration)
+
+1. In Home Assistant, open **HACS** and search for **Degree Days**.
+2. Open it, select **Download**, and restart Home Assistant.
+3. Go to **Settings → Devices & services → Add integration** and add
+   **Degree Days**.
+
 ### HACS (custom repository)
+
+Only needed if Degree Days does not show up in your HACS search.
 
 1. In HACS, open the menu (⋮) → **Custom repositories**.
 2. Add `https://github.com/benedictvantrigt/home-assistant-degree-days` with
